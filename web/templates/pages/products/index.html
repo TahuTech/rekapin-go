@@ -1,0 +1,38 @@
+{{define "title"}}Barang{{end}}
+{{define "content"}}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <h1 class="page-title">Master Barang</h1>
+  <a href="/products/new" class="btn-primary">+ Barang</a>
+</div>
+<div class="card">
+  <div class="card-header">
+    <input type="search" name="q" value="{{.Q}}" placeholder="Cari barang…" class="input max-w-xs"
+           hx-get="/products" hx-trigger="input changed delay:300ms, search" hx-target="#product-table" hx-push-url="true">
+  </div>
+  <div id="product-table">{{template "table" .}}</div>
+</div>
+{{end}}
+
+{{define "table"}}
+<div class="overflow-x-auto">
+<table class="table">
+  <thead><tr><th>Nama</th><th>Satuan</th><th class="text-right">Harga Default</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {{range .Products}}
+    <tr class="{{if not .Active}}text-slate-400{{end}}">
+      <td class="font-medium">{{.Name}}</td>
+      <td>{{.Unit}}</td>
+      <td class="num">{{rp .Price}}</td>
+      <td>{{if .Active}}<span class="badge bg-emerald-100 text-emerald-800">Aktif</span>{{else}}<span class="badge bg-slate-200 text-slate-600">Nonaktif</span>{{end}}</td>
+      <td class="whitespace-nowrap text-right">
+        <a href="/products/{{.ID}}/edit" class="btn-secondary btn-sm">Edit</a>
+        <form method="post" action="/products/{{.ID}}/toggle" class="inline">
+          <button class="btn-secondary btn-sm">{{if .Active}}Nonaktifkan{{else}}Aktifkan{{end}}</button>
+        </form>
+      </td>
+    </tr>
+  {{else}}{{template "empty" "Belum ada barang"}}{{end}}
+  </tbody>
+</table>
+</div>
+{{end}}

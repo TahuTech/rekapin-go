@@ -1,0 +1,11 @@
+# Ganti domain. Caddy mengurus sertifikat HTTPS otomatis.
+rekap.example.com {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8080
+	log {
+		output file /var/log/caddy/rekapin.log {
+			roll_size 10mb
+			roll_keep 3
+		}
+	}
+}

@@ -1,0 +1,35 @@
+{{define "title"}}Customer{{end}}
+{{define "content"}}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <h1 class="page-title">Customer</h1>
+  <a href="/customers/new" class="btn-primary">+ Customer</a>
+</div>
+<div class="card">
+  <div class="card-header">
+    <input type="search" name="q" value="{{.Q}}" placeholder="Cari nama / no. HP…" class="input max-w-xs"
+           hx-get="/customers" hx-trigger="input changed delay:300ms, search" hx-target="#customer-table" hx-push-url="true">
+  </div>
+  <div id="customer-table">{{template "table" .}}</div>
+</div>
+{{end}}
+
+{{define "table"}}
+<div class="overflow-x-auto">
+<table class="table">
+  <thead><tr><th>Nama</th><th>No. HP</th><th class="text-right">Transaksi</th><th class="text-right">Total Beli</th><th class="text-right">Terbayar</th><th class="text-right">Sisa</th></tr></thead>
+  <tbody>
+  {{range .Customers}}
+    <tr>
+      <td><a class="link font-medium" href="/customers/{{.ID}}">{{.Name}}</a></td>
+      <td>{{.Phone}}</td>
+      <td class="num">{{.OrderCount}}</td>
+      <td class="num">{{rp .TotalBuy}}</td>
+      <td class="num text-emerald-700">{{rp .TotalPaid}}</td>
+      <td class="num {{if gt .Remaining 0}}font-medium text-rose-600{{end}}">{{rp .Remaining}}</td>
+    </tr>
+  {{else}}{{template "empty" "Belum ada customer"}}{{end}}
+  </tbody>
+</table>
+</div>
+{{template "pager" .Pager}}
+{{end}}

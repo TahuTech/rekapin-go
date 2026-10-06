@@ -1,0 +1,18 @@
+{{define "title"}}{{if .Product.ID}}Edit{{else}}Tambah{{end}} Barang{{end}}
+{{define "content"}}
+{{$p := .Product}}
+<div class="mb-6">
+  <a href="/products" class="link text-sm">← Barang</a>
+  <h1 class="page-title mt-1">{{if $p.ID}}Edit Barang{{else}}Tambah Barang{{end}}</h1>
+</div>
+<form method="post" action="{{if $p.ID}}/products/{{$p.ID}}{{else}}/products{{end}}" class="card max-w-xl space-y-4 p-6">
+  {{template "error" .Error}}
+  <label class="block"><span class="label">Nama Barang *</span><input name="name" value="{{$p.Name}}" class="input" required autofocus></label>
+  <div class="grid grid-cols-2 gap-4">
+    <label class="block"><span class="label">Satuan</span><input name="unit" value="{{$p.Unit}}" class="input" placeholder="pcs, kg, dus…"></label>
+    <label class="block"><span class="label">Harga Default (Rp)</span><input name="price" value="{{rp $p.Price}}" class="input money text-right" inputmode="numeric"></label>
+  </div>
+  <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="active" {{if $p.Active}}checked{{end}} class="h-4 w-4 rounded border-slate-300"> Aktif (muncul di form transaksi)</label>
+  <div class="flex justify-end pt-2"><button class="btn-primary">Simpan</button></div>
+</form>
+{{end}}

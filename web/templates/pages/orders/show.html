@@ -1,0 +1,100 @@
+{{define "title"}}{{.O.Code}}{{end}}
+{{define "content"}}
+{{$o := .O}}
+<div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <a href="/orders" class="link text-sm">← Penjualan</a>
+    <h1 class="page-title mt-1 flex items-center gap-3">{{$o.Code}} {{template "status" $o.Status}}</h1>
+    <p class="text-sm text-slate-500">{{dateLong $o.OrderDate}} · <a class="link" href="/customers/{{$o.CustomerID}}">{{$o.CustomerName}}</a></p>
+    {{with $o.Notes}}<p class="mt-1 text-sm italic text-slate-500">{{.}}</p>{{end}}
+  </div>
+  <div class="flex flex-wrap gap-2">
+    {{if gt $o.Remaining 0}}
+      <a href="/invoices/new?customer_id={{$o.CustomerID}}&order_id={{$o.ID}}" class="btn-secondary">Invoice Tagihan</a>
+      <a href="/invoices/new?type=pelunasan&customer_id={{$o.CustomerID}}&order_id={{$o.ID}}" class="btn-secondary">Lunasi</a>
+    {{end}}
+    {{if not .Locked}}
+      <a href="/orders/{{$o.ID}}/edit" class="btn-secondary">Edit</a>
+      <form method="post" action="/orders/{{$o.ID}}/delete" hx-confirm="Hapus transaksi {{$o.Code}}?"><button class="btn-danger">Hapus</button></form>
+    {{end}}
+  </div>
+</div>
+
+<div class="mb-6 grid gap-4 sm:grid-cols-3">
+  {{template "stat" dict "Label" "Total" "Value" (printf "Rp %s" (rp $o.Total)) "Class" "" "Sub" ""}}
+  {{template "stat" dict "Label" "Terbayar" "Value" (printf "Rp %s" (rp $o.Paid)) "Class" "text-emerald-600" "Sub" ""}}
+  {{template "stat" dict "Label" "Sisa" "Value" (printf "Rp %s" (rp $o.Remaining)) "Class" "text-rose-600" "Sub" ""}}
+</div>
+
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="space-y-6 lg:col-span-2">
+    <section class="card">
+      <div class="card-header"><h2 class="font-semibold">Barang</h2></div>
+      <div class="overflow-x-auto">
+      <table class="table">
+        <thead><tr><th>Barang</th><th class="text-right">Qty</th><th class="text-right">Harga</th><th class="text-right">Subtotal</th></tr></thead>
+        <tbody>
+        {{range .Items}}
+          <tr><td>{{.ProductName}}</td><td class="num">{{qty .Qty}} {{.Unit}}</td><td class="num">{{rp .UnitPrice}}</td><td class="num">{{rp .Subtotal}}</td></tr>
+        {{end}}
+        </tbody>
+        <tfoot><tr><td colspan="3" class="text-right font-medium">Total</td><td class="num font-semibold">{{rp $o.Total}}</td></tr></tfoot>
+      </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header"><h2 class="font-semibold">Log Pembayaran</h2></div>
+      <div class="overflow-x-auto">
+      <table class="table">
+        <thead><tr><th>Tanggal</th><th>Metode</th><th>Catatan</th><th>Dicatat</th><th class="text-right">Nominal</th><th></th></tr></thead>
+        <tbody>
+        {{range .Payments}}
+          <tr class="{{if .VoidedAt}}text-slate-400{{end}}">
+            <td class="whitespace-nowrap {{if .VoidedAt}}line-through{{end}}">{{date .PaidAt}}</td>
+            <td>{{methodLabel .Method}}</td>
+            <td>{{.Note}}{{if .InvoiceID}} · <a class="link" href="/invoices/{{pid .InvoiceID}}">{{deref .InvoiceNumber}}</a>{{end}}{{if .VoidedAt}} <span class="badge bg-slate-200 text-slate-600">void</span>{{end}}</td>
+            <td class="whitespace-nowrap text-xs text-slate-500">{{deref .CreatedByName}}<br>{{datetime .CreatedAt}}</td>
+            <td class="num {{if .VoidedAt}}line-through{{else}}text-emerald-700{{end}}">{{rp .Amount}}</td>
+            <td class="text-right">
+              {{if not .VoidedAt}}
+              <form method="post" action="/payments/{{.ID}}/void" hx-confirm="Batalkan pembayaran Rp {{rp .Amount}}?">
+                <input type="hidden" name="back" value="/orders/{{$o.ID}}">
+                <button class="text-xs text-rose-600 hover:underline">Void</button>
+              </form>
+              {{end}}
+            </td>
+          </tr>
+        {{else}}{{template "empty" "Belum ada pembayaran"}}{{end}}
+        </tbody>
+      </table>
+      </div>
+    </section>
+  </div>
+
+  <aside>
+    {{if gt $o.Remaining 0}}
+    <form method="post" action="/orders/{{$o.ID}}/payments" class="card space-y-4 p-5" id="pay-form">
+      <h2 class="font-semibold">Catat Pembayaran</h2>
+      {{template "error" .PayError}}
+      <label class="block"><span class="label">Nominal (Rp)</span>
+        <input name="amount" value="{{.PayAmount}}" class="input money text-right" inputmode="numeric" required data-max="{{$o.Remaining}}">
+        <button type="button" class="mt-1 text-xs text-indigo-600 hover:underline" onclick="this.previousElementSibling.value='{{rp $o.Remaining}}'">Isi sisa (Rp {{rp $o.Remaining}})</button>
+      </label>
+      <label class="block"><span class="label">Tanggal</span><input type="date" name="paid_at" value="{{iso .PayDate}}" class="input" required></label>
+      <label class="block"><span class="label">Metode</span>
+        <select name="method" class="input">
+          <option value="cash" {{if eq .PayMethod "cash"}}selected{{end}}>Tunai</option>
+          <option value="transfer" {{if eq .PayMethod "transfer"}}selected{{end}}>Transfer</option>
+          <option value="lainnya" {{if eq .PayMethod "lainnya"}}selected{{end}}>Lainnya</option>
+        </select>
+      </label>
+      <label class="block"><span class="label">Catatan</span><input name="note" value="{{.PayNote}}" class="input" placeholder="mis. cicilan ke-2"></label>
+      <button class="btn-primary w-full justify-center">Simpan Pembayaran</button>
+    </form>
+    {{else}}
+    <div class="card p-5 text-center text-emerald-700">✓ Transaksi sudah lunas</div>
+    {{end}}
+  </aside>
+</div>
+{{end}}

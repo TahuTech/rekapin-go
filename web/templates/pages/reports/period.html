@@ -1,0 +1,67 @@
+{{define "title"}}Rekap per Periode{{end}}
+{{define "content"}}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="page-title">Rekap per Periode</h1>
+    <p class="text-sm text-slate-500">{{datep .R.From}} – {{datep .R.To}}</p>
+  </div>
+  <a href="{{withQuery "/reports/period" .Query "format" "csv"}}" class="btn-secondary" hx-boost="false">⬇ Export CSV</a>
+</div>
+
+<form class="card mb-6 flex flex-wrap items-end gap-3 p-4" method="get" action="/reports/period">
+  <label class="block"><span class="label">Dari</span><input type="date" name="from" value="{{iso .R.From}}" class="input"></label>
+  <label class="block"><span class="label">Sampai</span><input type="date" name="to" value="{{iso .R.To}}" class="input"></label>
+  <label class="block"><span class="label">Kelompokkan</span>
+    <select name="group" class="input">
+      <option value="day" {{if eq .Group "day"}}selected{{end}}>Harian</option>
+      <option value="month" {{if eq .Group "month"}}selected{{end}}>Bulanan</option>
+    </select>
+  </label>
+  <button class="btn-primary">Tampilkan</button>
+  {{template "range-shortcuts" "/reports/period"}}
+</form>
+
+<div class="mb-6 grid gap-4 sm:grid-cols-3">
+  {{template "stat" dict "Label" "Jumlah Transaksi" "Value" (printf "%d" .Tot.OrderCount) "Class" "" "Sub" ""}}
+  {{template "stat" dict "Label" "Total Penjualan" "Value" (printf "Rp %s" (rp .Tot.Sales)) "Class" "" "Sub" ""}}
+  {{template "stat" dict "Label" "Total Penerimaan" "Value" (printf "Rp %s" (rp .Tot.Receipts)) "Class" "text-emerald-600" "Sub" ""}}
+</div>
+
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="card lg:col-span-2">
+    <div class="card-header">
+      <h2 class="font-semibold">Penjualan vs Penerimaan</h2>
+      <div class="flex gap-3 text-xs text-slate-500"><span><i class="inline-block h-2 w-3 rounded-sm bg-indigo-500"></i> Penjualan</span><span><i class="inline-block h-2 w-3 rounded-sm bg-emerald-500"></i> Penerimaan</span></div>
+    </div>
+    <div class="max-h-[32rem] overflow-y-auto">
+    <table class="table">
+      <thead class="sticky top-0 bg-white"><tr><th>Periode</th><th class="text-right">Trx</th><th class="text-right">Penjualan</th><th class="text-right">Penerimaan</th><th class="w-1/3"></th></tr></thead>
+      <tbody>
+      {{range .Rows}}
+        <tr>
+          <td class="whitespace-nowrap">{{if eq $.Group "month"}}{{month .Bucket}}{{else}}{{date .Bucket}}{{end}}</td>
+          <td class="num">{{.OrderCount}}</td>
+          <td class="num">{{rp .Sales}}</td>
+          <td class="num text-emerald-700">{{rp .Receipts}}</td>
+          <td>
+            <div class="h-1.5 rounded bg-indigo-500" style="width: {{pct .Sales $.Max}}%"></div>
+            <div class="mt-0.5 h-1.5 rounded bg-emerald-500" style="width: {{pct .Receipts $.Max}}%"></div>
+          </td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2 class="font-semibold">Barang Terlaris</h2></div>
+    <table class="table">
+      <thead><tr><th>Barang</th><th class="text-right">Qty</th><th class="text-right">Nilai</th></tr></thead>
+      <tbody>
+      {{range .Products}}<tr><td>{{.ProductName}}</td><td class="num whitespace-nowrap">{{qty .Qty}} {{.Unit}}</td><td class="num">{{rp .Revenue}}</td></tr>
+      {{else}}{{template "empty" "Belum ada penjualan"}}{{end}}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{end}}

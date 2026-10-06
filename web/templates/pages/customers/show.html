@@ -1,0 +1,66 @@
+{{define "title"}}{{.C.Name}}{{end}}
+{{define "content"}}
+{{$c := .C}}
+<div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <a href="/customers" class="link text-sm">← Customer</a>
+    <h1 class="page-title mt-1">{{$c.Name}}</h1>
+    <p class="text-sm text-slate-500">{{if $c.Phone}}{{$c.Phone}} · {{end}}{{$c.Address}}</p>
+    {{with $c.Notes}}<p class="mt-1 text-sm text-slate-500 italic">{{.}}</p>{{end}}
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="/orders/new?customer_id={{$c.ID}}" class="btn-primary">+ Transaksi</a>
+    {{if gt $c.Remaining 0}}
+      <a href="/invoices/new?customer_id={{$c.ID}}" class="btn-secondary">Invoice Tagihan</a>
+      <a href="/invoices/new?type=pelunasan&customer_id={{$c.ID}}" class="btn-secondary">Pelunasan</a>
+    {{end}}
+    <a href="/reports/customers?customer_id={{$c.ID}}" class="btn-secondary">Rekap</a>
+    <a href="/customers/{{$c.ID}}/edit" class="btn-secondary">Edit</a>
+  </div>
+</div>
+
+<div class="mb-6 grid gap-4 sm:grid-cols-4">
+  {{template "stat" dict "Label" "Jumlah Transaksi" "Value" (printf "%d" $c.OrderCount) "Class" "" "Sub" ""}}
+  {{template "stat" dict "Label" "Total Beli" "Value" (printf "Rp %s" (rp $c.TotalBuy)) "Class" "" "Sub" ""}}
+  {{template "stat" dict "Label" "Terbayar" "Value" (printf "Rp %s" (rp $c.TotalPaid)) "Class" "text-emerald-600" "Sub" ""}}
+  {{template "stat" dict "Label" "Sisa Pembayaran" "Value" (printf "Rp %s" (rp $c.Remaining)) "Class" "text-rose-600" "Sub" ""}}
+</div>
+
+<div class="card">
+  <div class="flex gap-1 border-b border-slate-200 px-4 text-sm">
+    <a href="/customers/{{$c.ID}}" class="tab {{if eq .Tab "orders"}}tab-active{{end}}">Transaksi</a>
+    <a href="/customers/{{$c.ID}}?tab=payments" class="tab {{if eq .Tab "payments"}}tab-active{{end}}">Log Pembayaran</a>
+    <a href="/customers/{{$c.ID}}?tab=invoices" class="tab {{if eq .Tab "invoices"}}tab-active{{end}}">Invoice</a>
+  </div>
+
+  {{if eq .Tab "payments"}}
+    <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Tanggal</th><th>Transaksi</th><th>Metode</th><th>Catatan</th><th class="text-right">Nominal</th></tr></thead>
+      <tbody>
+      {{range .Payments}}
+        <tr class="{{if .VoidedAt}}opacity-50 line-through{{end}}">
+          <td class="whitespace-nowrap">{{date .PaidAt}}</td>
+          <td><a class="link" href="/orders/{{.OrderID}}">{{.OrderCode}}</a></td>
+          <td>{{methodLabel .Method}}</td>
+          <td>{{.Note}}</td>
+          <td class="num text-emerald-700">{{rp .Amount}}</td>
+        </tr>
+      {{else}}{{template "empty" "Belum ada pembayaran"}}{{end}}
+      </tbody>
+      <tfoot><tr><td colspan="4" class="text-right font-medium">Total</td><td class="num font-semibold">{{rp .PaymentSum}}</td></tr></tfoot>
+    </table>
+    </div>
+  {{else if eq .Tab "invoices"}}
+    {{template "invoice-rows" .}}
+  {{else}}
+    <div class="flex gap-2 px-4 pt-3 text-sm">
+      <a href="/customers/{{$c.ID}}" class="chip {{if eq .Status ""}}chip-active{{end}}">Semua</a>
+      <a href="/customers/{{$c.ID}}?status=outstanding" class="chip {{if eq .Status "outstanding"}}chip-active{{end}}">Belum lunas</a>
+      <a href="/customers/{{$c.ID}}?status=lunas" class="chip {{if eq .Status "lunas"}}chip-active{{end}}">Lunas</a>
+    </div>
+    {{template "order-rows" .}}
+  {{end}}
+  {{template "pager" .Pager}}
+</div>
+{{end}}

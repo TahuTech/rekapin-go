@@ -1,0 +1,45 @@
+# Lingkungan development lokal. Jalankan lewat `make dev`.
+name: rekapin
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rekapin
+      POSTGRES_PASSWORD: rekapin
+      POSTGRES_DB: rekapin
+    ports:
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./deploy/dev/initdb.sql:/docker-entrypoint-initdb.d/initdb.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rekapin -d rekapin"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    # Jalan sebagai user host agar file hasil build (tmp/, app.css) tidak dimiliki root.
+    user: "${UID:-1000}:${GID:-1000}"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://rekapin:rekapin@db:5432/rekapin?sslmode=disable
+      TEST_DATABASE_URL: postgres://rekapin:rekapin@db:5432/rekapin_test?sslmode=disable
+      ADDR: 0.0.0.0:8080
+      SECURE_COOKIE: "false"
+      COMPANY_NAME: Rekapin Dev
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+    volumes:
+      - .:/src
+      - gocache:/cache
+
+volumes:
+  pgdata:
+  gocache:

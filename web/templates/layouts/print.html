@@ -1,0 +1,19 @@
+{{define "printbase"}}<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{template "title" .}}</title>
+  <link rel="stylesheet" href="/static/app.css?v=1">
+  <style>@page { size: A4; margin: 14mm; } @media print { .no-print { display: none !important; } body { background: #fff; } }</style>
+</head>
+<body class="bg-slate-100 text-slate-900">
+  <div class="no-print mx-auto flex max-w-3xl justify-end gap-2 p-4">
+    <button onclick="history.back()" class="btn-secondary">Kembali</button>
+    <button onclick="window.print()" class="btn-primary">Cetak / Simpan PDF</button>
+  </div>
+  <div class="mx-auto max-w-3xl bg-white p-10 shadow print:max-w-none print:p-0 print:shadow-none">
+    {{template "doc" .}}
+  </div>
+</body>
+</html>{{end}}

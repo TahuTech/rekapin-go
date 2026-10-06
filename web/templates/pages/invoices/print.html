@@ -1,0 +1,66 @@
+{{define "title"}}{{.Inv.Number}} - {{.Inv.CustomerName}}{{end}}
+{{define "print"}}{{template "printbase" .}}{{end}}
+{{define "doc"}}
+{{$i := .Inv}}
+{{$lunas := eq $i.Type "pelunasan"}}
+<div class="flex items-start justify-between border-b-2 border-slate-800 pb-4">
+  <div>
+    <div class="text-xl font-bold">{{.Company}}</div>
+    <div class="whitespace-pre-line text-sm text-slate-600">{{.CompanyInfo}}</div>
+  </div>
+  <div class="text-right">
+    <div class="text-2xl font-bold tracking-wide">{{if $lunas}}KWITANSI PELUNASAN{{else}}INVOICE{{end}}</div>
+    <div class="text-sm">{{$i.Number}}</div>
+  </div>
+</div>
+
+<div class="mt-6 grid grid-cols-2 gap-6 text-sm">
+  <div>
+    <div class="text-xs uppercase tracking-wider text-slate-500">{{if $lunas}}Diterima dari{{else}}Ditagihkan kepada{{end}}</div>
+    <div class="mt-1 font-semibold">{{$i.CustomerName}}</div>
+    {{with $i.CustomerAddress}}<div class="whitespace-pre-line text-slate-600">{{.}}</div>{{end}}
+    {{with $i.CustomerPhone}}<div class="text-slate-600">{{.}}</div>{{end}}
+  </div>
+  <div class="text-right">
+    <div><span class="text-slate-500">Tanggal:</span> {{dateLong $i.IssueDate}}</div>
+    {{if $i.DueDate}}<div><span class="text-slate-500">Jatuh tempo:</span> <b>{{datep $i.DueDate}}</b></div>{{end}}
+  </div>
+</div>
+
+<table class="mt-6 w-full text-sm">
+  <thead>
+    <tr class="border-y border-slate-300 bg-slate-50 text-left">
+      <th class="px-2 py-2">No. Transaksi</th><th class="px-2 py-2">Tanggal</th><th class="px-2 py-2">Barang</th>
+      <th class="px-2 py-2 text-right">Total</th><th class="px-2 py-2 text-right">Dibayar</th>
+      <th class="px-2 py-2 text-right">{{if $lunas}}Dilunasi{{else}}Sisa{{end}}</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Lines}}
+    <tr class="border-b border-slate-200 align-top">
+      <td class="px-2 py-2 whitespace-nowrap">{{.OrderCode}}</td>
+      <td class="px-2 py-2 whitespace-nowrap">{{date .OrderDate}}</td>
+      <td class="px-2 py-2">{{.Items}}</td>
+      <td class="px-2 py-2 text-right tabular-nums">{{rp .OrderTotal}}</td>
+      <td class="px-2 py-2 text-right tabular-nums">{{rp .PaidBefore}}</td>
+      <td class="px-2 py-2 text-right tabular-nums">{{rp .AmountDue}}</td>
+    </tr>
+  {{end}}
+  </tbody>
+  <tfoot>
+    <tr><td colspan="5" class="px-2 pt-4 text-right font-semibold">{{if $lunas}}TOTAL DIBAYAR{{else}}TOTAL TAGIHAN{{end}}</td>
+        <td class="px-2 pt-4 text-right text-lg font-bold tabular-nums">Rp {{rp $i.Total}}</td></tr>
+  </tfoot>
+</table>
+
+{{if $lunas}}
+<div class="mt-6 rounded border-2 border-emerald-600 px-4 py-3 text-center text-lg font-bold tracking-widest text-emerald-700">LUNAS</div>
+{{end}}
+
+{{with $i.Notes}}<div class="mt-6 whitespace-pre-line text-sm"><div class="text-xs uppercase tracking-wider text-slate-500">Catatan</div>{{.}}</div>{{end}}
+
+<div class="mt-16 grid grid-cols-2 text-center text-sm">
+  <div>{{if $lunas}}Penyetor{{else}}Penerima{{end}}<div class="mt-16 border-t border-slate-400 mx-10 pt-1">{{$i.CustomerName}}</div></div>
+  <div>Hormat kami<div class="mt-16 border-t border-slate-400 mx-10 pt-1">{{deref $i.CreatedByName}}</div></div>
+</div>
+{{end}}

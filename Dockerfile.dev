@@ -1,0 +1,22 @@
+# Image khusus development: Go + air (hot reload) + Tailwind standalone (musl).
+# Produksi TIDAK memakai image ini (deploy = binary + systemd).
+FROM golang:1.26-alpine
+
+ARG TAILWIND_VERSION=v4.1.14
+# /cache dibuat world-writable: volume cache baru mewarisi permission ini
+# sehingga bisa ditulis container yang berjalan sebagai user host (non-root).
+RUN apk add --no-cache curl libstdc++ libgcc \
+ && curl -fsSL -o /usr/local/bin/tailwindcss \
+      https://github.com/tailwindlabs/tailwindcss/releases/download/${TAILWIND_VERSION}/tailwindcss-linux-x64-musl \
+ && chmod +x /usr/local/bin/tailwindcss \
+ && GOBIN=/usr/local/bin go install github.com/air-verse/air@latest \
+ && go clean -cache -modcache \
+ && mkdir -p /cache/build /cache/mod && chmod -R 777 /cache
+
+ENV HOME=/tmp \
+    GOCACHE=/cache/build \
+    GOMODCACHE=/cache/mod \
+    GOFLAGS=-buildvcs=false
+
+WORKDIR /src
+CMD ["air", "-c", ".air.toml"]

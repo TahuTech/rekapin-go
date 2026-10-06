@@ -1,0 +1,56 @@
+{{define "title"}}Dashboard{{end}}
+{{define "content"}}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="text-sm text-slate-500">Ringkasan {{month .Month}}</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="/orders/new" class="btn-primary">+ Transaksi</a>
+    <a href="/invoices/new" class="btn-secondary">Buat Invoice</a>
+  </div>
+</div>
+
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  {{template "stat" dict "Label" "Total Piutang" "Value" (printf "Rp %s" (rp .D.Receivable)) "Class" "text-rose-600" "Sub" (printf "%d transaksi belum lunas" .D.OutstandingCount)}}
+  {{template "stat" dict "Label" "Penjualan Bulan Ini" "Value" (printf "Rp %s" (rp .D.SalesMonth)) "Class" "" "Sub" ""}}
+  {{template "stat" dict "Label" "Penerimaan Bulan Ini" "Value" (printf "Rp %s" (rp .D.ReceiptsMonth)) "Class" "text-emerald-600" "Sub" ""}}
+  {{template "stat" dict "Label" "Customer Aktif" "Value" (printf "%d" .D.CustomerCount) "Class" "" "Sub" ""}}
+</div>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <section class="card">
+    <div class="card-header"><h2 class="font-semibold">Sisa Tagihan Terbesar</h2><a href="/reports/customers" class="link text-sm">Rekap →</a></div>
+    <table class="table">
+      <thead><tr><th>Customer</th><th class="text-right">Total Beli</th><th class="text-right">Sisa</th><th></th></tr></thead>
+      <tbody>
+      {{range .Debtors}}
+        <tr>
+          <td><a class="link" href="/customers/{{.ID}}">{{.Name}}</a></td>
+          <td class="num">{{rp .TotalBuy}}</td>
+          <td class="num font-medium text-rose-600">{{rp .Remaining}}</td>
+          <td class="text-right"><a class="btn-secondary btn-sm" href="/invoices/new?customer_id={{.ID}}">Tagih</a></td>
+        </tr>
+      {{else}}{{template "empty" "Tidak ada piutang 🎉"}}{{end}}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <div class="card-header"><h2 class="font-semibold">Pembayaran Terakhir</h2><a href="/payments" class="link text-sm">Semua →</a></div>
+    <table class="table">
+      <thead><tr><th>Tanggal</th><th>Customer</th><th>Transaksi</th><th class="text-right">Nominal</th></tr></thead>
+      <tbody>
+      {{range .Recent}}
+        <tr>
+          <td class="whitespace-nowrap">{{date .PaidAt}}</td>
+          <td>{{.CustomerName}}</td>
+          <td><a class="link" href="/orders/{{.OrderID}}">{{.OrderCode}}</a></td>
+          <td class="num text-emerald-700">{{rp .Amount}}</td>
+        </tr>
+      {{else}}{{template "empty" "Belum ada pembayaran"}}{{end}}
+      </tbody>
+    </table>
+  </section>
+</div>
+{{end}}

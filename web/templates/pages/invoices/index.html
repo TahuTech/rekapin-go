@@ -1,0 +1,29 @@
+{{define "title"}}Invoice{{end}}
+{{define "content"}}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <h1 class="page-title">Invoice</h1>
+  <div class="flex gap-2">
+    <a href="/invoices/new" class="btn-primary">+ Invoice Tagihan</a>
+    <a href="/invoices/new?type=pelunasan" class="btn-secondary">+ Pelunasan</a>
+  </div>
+</div>
+<div class="card">
+  <form class="card-header flex-wrap gap-2" hx-get="/invoices" hx-target="#invoice-table" hx-push-url="true" hx-trigger="change, submit">
+    {{template "customer-select" dict "Customers" .Customers "Selected" .F.CustomerID}}
+    <select name="type" class="input w-auto">
+      <option value="">Semua jenis</option>
+      <option value="tagihan" {{if eq .F.Type "tagihan"}}selected{{end}}>Tagihan</option>
+      <option value="pelunasan" {{if eq .F.Type "pelunasan"}}selected{{end}}>Pelunasan</option>
+    </select>
+    <input type="date" name="from" value="{{iso .F.From}}" class="input w-auto">
+    <input type="date" name="to" value="{{iso .F.To}}" class="input w-auto">
+    <button class="btn-secondary">Filter</button>
+  </form>
+  <div id="invoice-table">{{template "table" .}}</div>
+</div>
+{{end}}
+
+{{define "table"}}
+{{template "invoice-rows" .}}
+{{template "pager" .Pager}}
+{{end}}

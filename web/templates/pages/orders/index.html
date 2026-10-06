@@ -1,0 +1,29 @@
+{{define "title"}}Penjualan{{end}}
+{{define "content"}}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <h1 class="page-title">Transaksi Penjualan</h1>
+  <a href="/orders/new" class="btn-primary">+ Transaksi</a>
+</div>
+<div class="card">
+  <form class="card-header flex-wrap gap-2" hx-get="/orders" hx-target="#order-table" hx-push-url="true" hx-trigger="change, submit">
+    <input type="search" name="q" value="{{.F.Q}}" placeholder="Kode transaksi…" class="input w-40">
+    {{template "customer-select" dict "Customers" .Customers "Selected" .F.CustomerID}}
+    <select name="status" class="input w-auto">
+      <option value="">Semua status</option>
+      <option value="outstanding" {{if eq .F.Status "outstanding"}}selected{{end}}>Belum lunas</option>
+      <option value="belum" {{if eq .F.Status "belum"}}selected{{end}}>Belum bayar</option>
+      <option value="sebagian" {{if eq .F.Status "sebagian"}}selected{{end}}>Dibayar sebagian</option>
+      <option value="lunas" {{if eq .F.Status "lunas"}}selected{{end}}>Lunas</option>
+    </select>
+    <input type="date" name="from" value="{{iso .F.From}}" class="input w-auto" title="Dari tanggal">
+    <input type="date" name="to" value="{{iso .F.To}}" class="input w-auto" title="Sampai tanggal">
+    <button class="btn-secondary">Filter</button>
+  </form>
+  <div id="order-table">{{template "table" .}}</div>
+</div>
+{{end}}
+
+{{define "table"}}
+{{template "order-rows" .}}
+{{template "pager" .Pager}}
+{{end}}

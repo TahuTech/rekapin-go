@@ -1,0 +1,29 @@
+[Unit]
+Description=Rekapin - rekap penjualan & piutang
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=rekapin
+Group=rekapin
+WorkingDirectory=/opt/rekapin
+EnvironmentFile=/opt/rekapin/.env
+# Batasi heap Go agar GC lebih agresif di VPS 1 GB; 1 core = GOMAXPROCS 1.
+Environment=GOMEMLIMIT=128MiB
+Environment=GOMAXPROCS=1
+ExecStart=/opt/rekapin/rekapin serve
+Restart=on-failure
+RestartSec=3
+MemoryMax=256M
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadOnlyPaths=/opt/rekapin
+
+[Install]
+WantedBy=multi-user.target

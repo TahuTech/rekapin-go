@@ -1,0 +1,56 @@
+{{define "flash"}}
+{{with .Flash}}
+<div class="mb-4 flex items-start justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">
+  <span>{{.}}</span>
+  <button type="button" class="ml-4 text-emerald-600 hover:text-emerald-900" onclick="this.parentElement.remove()" aria-label="Tutup">✕</button>
+</div>
+{{end}}
+{{end}}
+
+{{define "error"}}
+{{with .}}<div class="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">{{.}}</div>{{end}}
+{{end}}
+
+{{define "pager"}}
+{{if gt .Pages 1}}
+<nav class="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-600">
+  <span>Halaman {{.Page}} dari {{.Pages}} · {{.Total}} data</span>
+  <div class="flex gap-2">
+    {{if .HasPrev}}<a class="btn-secondary btn-sm" href="{{pageURL .Base .Query .Prev}}">← Sebelumnya</a>{{end}}
+    {{if .HasNext}}<a class="btn-secondary btn-sm" href="{{pageURL .Base .Query .Next}}">Berikutnya →</a>{{end}}
+  </div>
+</nav>
+{{else if gt .Total 0}}
+<div class="border-t border-slate-200 px-4 py-3 text-sm text-slate-500">{{.Total}} data</div>
+{{end}}
+{{end}}
+
+{{define "status"}}<span class="badge {{statusClass .}}">{{statusLabel .}}</span>{{end}}
+
+{{define "empty"}}<tr><td colspan="20" class="px-4 py-10 text-center text-slate-400">{{.}}</td></tr>{{end}}
+
+{{define "stat"}}
+<div class="card p-5">
+  <div class="text-sm text-slate-500">{{.Label}}</div>
+  <div class="mt-1 text-2xl font-semibold tabular-nums {{.Class}}">{{.Value}}</div>
+  {{with .Sub}}<div class="mt-1 text-xs text-slate-400">{{.}}</div>{{end}}
+</div>
+{{end}}
+
+{{define "customer-select"}}
+<select name="customer_id" class="input">
+  <option value="0">{{if .Placeholder}}{{.Placeholder}}{{else}}Semua customer{{end}}</option>
+  {{$sel := .Selected}}
+  {{range .Customers}}<option value="{{.ID}}" {{if eq .ID $sel}}selected{{end}}>{{.Name}}</option>{{end}}
+</select>
+{{end}}
+
+{{/* Tombol pintas periode; tanggal dihitung di browser oleh app.js (data-range). */}}
+{{define "range-shortcuts"}}
+<div class="flex flex-wrap gap-1 text-sm" data-range-base="{{.}}">
+  <button type="button" class="chip" data-range="this-month">Bulan ini</button>
+  <button type="button" class="chip" data-range="last-month">Bulan lalu</button>
+  <button type="button" class="chip" data-range="this-year">Tahun ini</button>
+  <button type="button" class="chip" data-range="all">Semua</button>
+</div>
+{{end}}

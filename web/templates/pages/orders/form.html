@@ -1,0 +1,76 @@
+{{define "title"}}{{if .OrderID}}Edit {{.Code}}{{else}}Transaksi Baru{{end}}{{end}}
+{{define "content"}}
+{{$in := .In}}
+<div class="mb-6">
+  <a href="{{if .OrderID}}/orders/{{.OrderID}}{{else}}/orders{{end}}" class="link text-sm">← Kembali</a>
+  <h1 class="page-title mt-1">{{if .OrderID}}Edit Transaksi {{.Code}}{{else}}Transaksi Baru{{end}}</h1>
+</div>
+
+<form method="post" action="{{if .OrderID}}/orders/{{.OrderID}}{{else}}/orders{{end}}" class="space-y-6" id="order-form">
+  <input type="hidden" name="code" value="{{.Code}}">
+  {{template "error" .Error}}
+  <div class="card grid gap-4 p-6 sm:grid-cols-3">
+    <label class="block sm:col-span-2"><span class="label">Customer *</span>
+      {{template "customer-select" dict "Customers" .Customers "Selected" $in.CustomerID "Placeholder" "— Pilih customer —"}}
+      {{if not .Customers}}<span class="mt-1 block text-xs text-amber-700">Belum ada customer. <a class="link" href="/customers/new">Tambah dulu</a>.</span>{{end}}
+    </label>
+    <label class="block"><span class="label">Tanggal *</span><input type="date" name="order_date" value="{{iso $in.OrderDate}}" class="input" required></label>
+    <label class="block sm:col-span-3"><span class="label">Catatan</span><input name="notes" value="{{$in.Notes}}" class="input"></label>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2 class="font-semibold">Barang</h2></div>
+    <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th class="w-56">Pilih dari master</th><th>Nama barang</th><th class="w-24">Satuan</th><th class="w-24 text-right">Qty</th><th class="w-40 text-right">Harga</th><th class="w-36 text-right">Subtotal</th><th class="w-10"></th></tr></thead>
+      <tbody id="items">
+        {{range $in.Items}}{{template "item-row" dict "Item" . "Products" $.Products}}{{end}}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5"><button type="button" class="btn-secondary btn-sm" hx-get="/orders/item-row" hx-target="#items" hx-swap="beforeend">+ Tambah baris</button></td>
+          <td class="num text-base font-semibold">Rp <span id="grand-total">0</span></td><td></td>
+        </tr>
+      </tfoot>
+    </table>
+    </div>
+  </div>
+
+  {{if not .OrderID}}
+  <div class="card grid gap-4 p-6 sm:grid-cols-3">
+    <div class="sm:col-span-3"><h2 class="font-semibold">Uang Muka / Bayar Langsung <span class="text-sm font-normal text-slate-500">(opsional)</span></h2></div>
+    <label class="block"><span class="label">Nominal (Rp)</span>
+      <input name="dp_amount" value="{{if .DP}}{{rp .DP}}{{end}}" class="input money text-right" inputmode="numeric" placeholder="0">
+    </label>
+    <label class="block"><span class="label">Metode</span>
+      <select name="dp_method" class="input">
+        <option value="cash" {{if eq .DPMethod "cash"}}selected{{end}}>Tunai</option>
+        <option value="transfer" {{if eq .DPMethod "transfer"}}selected{{end}}>Transfer</option>
+        <option value="lainnya" {{if eq .DPMethod "lainnya"}}selected{{end}}>Lainnya</option>
+      </select>
+    </label>
+    <div class="flex items-end"><button type="button" class="btn-secondary w-full justify-center" data-pay-full>Bayar lunas</button></div>
+  </div>
+  {{end}}
+
+  <div class="flex justify-end gap-2"><button class="btn-primary">Simpan Transaksi</button></div>
+</form>
+{{end}}
+
+{{define "item-row"}}
+{{$it := .Item}}
+<tr class="item-row align-top">
+  <td>
+    <select name="product_id" class="input product-select">
+      <option value="0">— manual —</option>
+      {{range .Products}}<option value="{{.ID}}" data-name="{{.Name}}" data-unit="{{.Unit}}" data-price="{{.Price}}" {{if eq .ID (pid $it.ProductID)}}selected{{end}}>{{.Name}}</option>{{end}}
+    </select>
+  </td>
+  <td><input name="product_name" value="{{$it.ProductName}}" class="input" placeholder="Nama barang"></td>
+  <td><input name="unit" value="{{$it.Unit}}" class="input"></td>
+  <td><input name="qty" value="{{qty $it.Qty}}" class="input text-right qty" inputmode="decimal"></td>
+  <td><input name="price" value="{{rp $it.UnitPrice}}" class="input money text-right price" inputmode="numeric"></td>
+  <td class="num pt-4 subtotal">0</td>
+  <td class="pt-3"><button type="button" class="remove-row rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Hapus baris">✕</button></td>
+</tr>
+{{end}}

@@ -1,0 +1,48 @@
+{{define "title"}}{{.Inv.Number}}{{end}}
+{{define "content"}}
+{{$i := .Inv}}
+<div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <a href="/invoices" class="link text-sm">← Invoice</a>
+    <h1 class="page-title mt-1">{{$i.Number}}</h1>
+    <p class="text-sm text-slate-500">{{if eq $i.Type "pelunasan"}}Kwitansi Pelunasan{{else}}Invoice Tagihan{{end}} · {{dateLong $i.IssueDate}} · <a class="link" href="/customers/{{$i.CustomerID}}">{{$i.CustomerName}}</a></p>
+  </div>
+  <div class="flex gap-2">
+    {{if eq $i.Type "tagihan"}}<a href="/invoices/new?type=pelunasan&customer_id={{$i.CustomerID}}" class="btn-secondary">Pelunasan</a>{{end}}
+    <a href="/invoices/{{$i.ID}}/print" class="btn-primary" target="_blank" hx-boost="false">Cetak / PDF</a>
+  </div>
+</div>
+<div class="card">
+  {{template "invoice-lines" .}}
+</div>
+{{if .Payments}}
+<div class="card mt-6">
+  <div class="card-header"><h2 class="font-semibold">Pembayaran tercatat oleh pelunasan ini</h2></div>
+  <table class="table">
+    <thead><tr><th>Transaksi</th><th>Metode</th><th>Status</th><th class="text-right">Nominal</th></tr></thead>
+    <tbody>
+    {{range .Payments}}
+      <tr><td><a class="link" href="/orders/{{.OrderID}}">{{.OrderCode}}</a></td><td>{{methodLabel .Method}}</td>
+          <td>{{if .VoidedAt}}<span class="badge bg-slate-200 text-slate-600">void</span>{{else}}<span class="badge bg-emerald-100 text-emerald-800">sah</span>{{end}}</td>
+          <td class="num">{{rp .Amount}}</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{end}}
+
+{{define "invoice-lines"}}
+<div class="overflow-x-auto">
+<table class="table">
+  <thead><tr><th>No. Transaksi</th><th>Tanggal</th><th>Barang</th><th class="text-right">Total</th><th class="text-right">Sudah Dibayar</th><th class="text-right">{{if eq .Inv.Type "pelunasan"}}Dilunasi{{else}}Sisa Tagihan{{end}}</th></tr></thead>
+  <tbody>
+  {{range .Lines}}
+    <tr><td class="whitespace-nowrap">{{.OrderCode}}</td><td class="whitespace-nowrap">{{date .OrderDate}}</td><td>{{.Items}}</td>
+        <td class="num">{{rp .OrderTotal}}</td><td class="num">{{rp .PaidBefore}}</td><td class="num font-medium">{{rp .AmountDue}}</td></tr>
+  {{end}}
+  </tbody>
+  <tfoot><tr><td colspan="5" class="text-right font-semibold">{{if eq .Inv.Type "pelunasan"}}Total Dibayar{{else}}Total Tagihan{{end}}</td><td class="num text-base font-bold">Rp {{rp .Inv.Total}}</td></tr></tfoot>
+</table>
+</div>
+{{end}}

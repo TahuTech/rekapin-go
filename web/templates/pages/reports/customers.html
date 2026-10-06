@@ -1,0 +1,55 @@
+{{define "title"}}Rekap per Customer{{end}}
+{{define "content"}}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="page-title">Rekap per Customer</h1>
+    <p class="text-sm text-slate-500">Periode {{datep .R.From}} – {{datep .R.To}}</p>
+  </div>
+  <a href="{{withQuery "/reports/customers" .Query "format" "csv"}}" class="btn-secondary" hx-boost="false">⬇ Export CSV</a>
+</div>
+
+<form class="card mb-6 flex flex-wrap items-end gap-3 p-4" method="get" action="/reports/customers">
+  <label class="block"><span class="label">Customer</span>{{template "customer-select" dict "Customers" .Customers "Selected" .CustomerID}}</label>
+  <label class="block"><span class="label">Dari</span><input type="date" name="from" value="{{iso .R.From}}" class="input"></label>
+  <label class="block"><span class="label">Sampai</span><input type="date" name="to" value="{{iso .R.To}}" class="input"></label>
+  <button class="btn-primary">Tampilkan</button>
+  {{template "range-shortcuts" "/reports/customers"}}
+</form>
+
+<div class="card">
+  <div class="overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Customer</th><th class="text-right">Transaksi</th><th class="text-right">Total Beli</th><th class="text-right">Terbayar</th><th class="text-right">Sisa</th><th class="text-right" title="Uang masuk berdasarkan tanggal bayar dalam periode">Penerimaan Periode</th><th></th></tr></thead>
+    <tbody>
+    {{range .Rows}}
+      <tr>
+        <td><a class="link font-medium" href="/customers/{{.CustomerID}}">{{.CustomerName}}</a></td>
+        <td class="num">{{.OrderCount}}</td>
+        <td class="num">{{rp .TotalBuy}}</td>
+        <td class="num text-emerald-700">{{rp .TotalPaid}}</td>
+        <td class="num {{if gt .Remaining 0}}font-medium text-rose-600{{end}}">{{rp .Remaining}}</td>
+        <td class="num">{{rp .Receipts}}</td>
+        <td class="text-right"><a class="btn-secondary btn-sm" href="{{withQuery "/orders" $.Query "customer_id" (printf "%d" .CustomerID)}}">Detail</a></td>
+      </tr>
+    {{else}}{{template "empty" "Tidak ada data pada periode ini"}}{{end}}
+    </tbody>
+    {{if .Rows}}
+    <tfoot class="font-semibold">
+      <tr><td>Total</td><td class="num">{{.Tot.OrderCount}}</td><td class="num">{{rp .Tot.TotalBuy}}</td><td class="num">{{rp .Tot.TotalPaid}}</td><td class="num text-rose-600">{{rp .Tot.Remaining}}</td><td class="num">{{rp .Tot.Receipts}}</td><td></td></tr>
+    </tfoot>
+    {{end}}
+  </table>
+  </div>
+  <p class="border-t border-slate-200 px-4 py-2 text-xs text-slate-500">Total beli, terbayar & sisa dihitung dari transaksi bertanggal dalam periode. Penerimaan periode = pembayaran yang diterima dalam periode (termasuk untuk transaksi lama).</p>
+</div>
+
+{{if .Products}}
+<div class="card mt-6">
+  <div class="card-header"><h2 class="font-semibold">Barang yang dibeli</h2></div>
+  <table class="table">
+    <thead><tr><th>Barang</th><th class="text-right">Qty</th><th class="text-right">Nilai</th></tr></thead>
+    <tbody>{{range .Products}}<tr><td>{{.ProductName}}</td><td class="num">{{qty .Qty}} {{.Unit}}</td><td class="num">{{rp .Revenue}}</td></tr>{{end}}</tbody>
+  </table>
+</div>
+{{end}}
+{{end}}

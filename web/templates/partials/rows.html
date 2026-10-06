@@ -1,0 +1,43 @@
+{{/* Tabel transaksi, dipakai di daftar penjualan & detail customer. */}}
+{{define "order-rows"}}
+<div class="overflow-x-auto">
+<table class="table">
+  <thead><tr><th>Kode</th><th>Tanggal</th><th>Customer</th><th>Barang</th><th class="text-right">Total</th><th class="text-right">Terbayar</th><th class="text-right">Sisa</th><th>Status</th></tr></thead>
+  <tbody>
+  {{range .Orders}}
+    <tr>
+      <td class="whitespace-nowrap"><a class="link font-medium" href="/orders/{{.ID}}">{{.Code}}</a></td>
+      <td class="whitespace-nowrap">{{date .OrderDate}}</td>
+      <td><a class="hover:underline" href="/customers/{{.CustomerID}}">{{.CustomerName}}</a></td>
+      <td class="max-w-xs truncate text-slate-500" title="{{.ItemsSummary}}">{{.ItemsSummary}}</td>
+      <td class="num">{{rp .Total}}</td>
+      <td class="num text-emerald-700">{{rp .Paid}}</td>
+      <td class="num {{if gt .Remaining 0}}font-medium text-rose-600{{end}}">{{rp .Remaining}}</td>
+      <td>{{template "status" .Status}}</td>
+    </tr>
+  {{else}}{{template "empty" "Belum ada transaksi"}}{{end}}
+  </tbody>
+</table>
+</div>
+{{end}}
+
+{{define "invoice-rows"}}
+<div class="overflow-x-auto">
+<table class="table">
+  <thead><tr><th>Nomor</th><th>Jenis</th><th>Tanggal</th><th>Customer</th><th>Jatuh Tempo</th><th class="text-right">Nominal</th><th></th></tr></thead>
+  <tbody>
+  {{range .Invoices}}
+    <tr>
+      <td class="whitespace-nowrap"><a class="link font-medium" href="/invoices/{{.ID}}">{{.Number}}</a></td>
+      <td>{{if eq .Type "pelunasan"}}<span class="badge bg-emerald-100 text-emerald-800">Pelunasan</span>{{else}}<span class="badge bg-indigo-100 text-indigo-800">Tagihan</span>{{end}}</td>
+      <td class="whitespace-nowrap">{{date .IssueDate}}</td>
+      <td>{{.CustomerName}}</td>
+      <td class="whitespace-nowrap">{{datep .DueDate}}</td>
+      <td class="num">{{rp .Total}}</td>
+      <td class="text-right"><a class="btn-secondary btn-sm" href="/invoices/{{.ID}}/print" hx-boost="false" target="_blank">Cetak</a></td>
+    </tr>
+  {{else}}{{template "empty" "Belum ada invoice"}}{{end}}
+  </tbody>
+</table>
+</div>
+{{end}}
