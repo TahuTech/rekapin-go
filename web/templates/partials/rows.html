@@ -41,3 +41,23 @@
 </table>
 </div>
 {{end}}
+
+{{define "user-table"}}
+<div class="overflow-x-auto">
+<table class="table">
+  <thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Toko</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {{range .}}
+    <tr class="{{if not .Active}}text-slate-400{{end}}">
+      <td class="font-medium">@{{.Username}}</td>
+      <td>{{.Name}}</td>
+      <td>{{if eq .Role "master"}}<span class="badge bg-indigo-100 text-indigo-700">Master</span>{{else}}<span class="badge bg-slate-100 text-slate-700">Admin</span>{{end}}</td>
+      <td>{{if .StoreID}}<a href="/master/stores/{{pid .StoreID}}" class="link">{{deref .StoreName}}</a>{{else}}-{{end}}</td>
+      <td>{{if .Active}}<span class="badge bg-emerald-100 text-emerald-800">Aktif</span>{{else}}<span class="badge bg-slate-200 text-slate-600">Nonaktif</span>{{end}}</td>
+      <td class="text-right"><a href="/master/users/{{.ID}}/edit" class="btn-secondary btn-sm">Edit</a></td>
+    </tr>
+  {{else}}{{template "empty" "Belum ada pengguna"}}{{end}}
+  </tbody>
+</table>
+</div>
+{{end}}

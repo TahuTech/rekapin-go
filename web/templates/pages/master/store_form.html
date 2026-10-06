@@ -1,0 +1,15 @@
+{{define "title"}}{{if .Store.ID}}Edit{{else}}Tambah{{end}} Toko{{end}}
+{{define "content"}}
+{{$s := .Store}}
+<div class="mb-6">
+  <a href="{{if $s.ID}}/master/stores/{{$s.ID}}{{else}}/master{{end}}" class="link text-sm">← Kembali</a>
+  <h1 class="page-title mt-1">{{if $s.ID}}Edit Toko{{else}}Tambah Toko{{end}}</h1>
+</div>
+<form method="post" action="{{if $s.ID}}/master/stores/{{$s.ID}}{{else}}/master/stores{{end}}" class="card max-w-2xl space-y-4 p-6">
+  {{template "error" .Error}}
+  <label class="block"><span class="label">Nama Toko *</span><input name="name" value="{{$s.Name}}" class="input" required autofocus></label>
+  <label class="block"><span class="label">Alamat / Kontak</span><textarea name="info" rows="3" class="input" placeholder="Ditampilkan di kop invoice">{{$s.Info}}</textarea></label>
+  <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="active" {{if $s.Active}}checked{{end}} class="h-4 w-4 rounded border-slate-300"> Aktif (admin toko bisa login)</label>
+  <div class="flex justify-end pt-2"><button class="btn-primary">Simpan</button></div>
+</form>
+{{end}}

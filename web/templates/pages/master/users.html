@@ -1,0 +1,11 @@
+{{define "title"}}Pengguna{{end}}
+{{define "content"}}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="page-title">Pengguna</h1>
+    <p class="text-sm text-slate-500">Semua akun master dan admin toko.</p>
+  </div>
+  <a href="/master/users/new" class="btn-primary">+ Pengguna</a>
+</div>
+<div class="card">{{template "user-table" .Users}}</div>
+{{end}}

@@ -13,17 +13,17 @@ import (
 func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	from, to := monthStart(today()), today()
-	d, err := a.st.Dashboard(ctx, from, to)
+	d, err := a.ts(r).Dashboard(ctx, from, to)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
-	debtors, err := a.st.TopDebtors(ctx, 5)
+	debtors, err := a.ts(r).TopDebtors(ctx, 5)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
-	recent, _, _, err := a.st.ListPayments(ctx, store.PaymentFilter{}, store.Page{Size: 8})
+	recent, _, _, err := a.ts(r).ListPayments(ctx, store.PaymentFilter{}, store.Page{Size: 8})
 	if err != nil {
 		a.serverError(w, r, err)
 		return
@@ -58,7 +58,7 @@ func (a *App) reportCustomers(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	rng := dateRange(q, true)
 	cid := formInt(q.Get("customer_id"))
-	rows, err := a.st.CustomerReport(r.Context(), rng, cid)
+	rows, err := a.ts(r).CustomerReport(r.Context(), rng, cid)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
@@ -82,14 +82,14 @@ func (a *App) reportCustomers(w http.ResponseWriter, r *http.Request) {
 		tot.Remaining += x.Remaining
 		tot.Receipts += x.Receipts
 	}
-	customers, err := a.st.CustomerOptions(r.Context())
+	customers, err := a.ts(r).CustomerOptions(r.Context())
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
 	data := D{"Rows": rows, "Tot": tot, "R": rng, "CustomerID": cid, "Customers": customers, "Query": q}
 	if cid > 0 {
-		products, err := a.st.TopProducts(r.Context(), rng, cid, 20)
+		products, err := a.ts(r).TopProducts(r.Context(), rng, cid, 20)
 		if err != nil {
 			a.serverError(w, r, err)
 			return
@@ -122,7 +122,7 @@ func (a *App) reportPeriod(w http.ResponseWriter, r *http.Request) {
 		unit = "day"
 	}
 
-	rows, err := a.st.PeriodReport(r.Context(), from, to, unit)
+	rows, err := a.ts(r).PeriodReport(r.Context(), from, to, unit)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
@@ -150,7 +150,7 @@ func (a *App) reportPeriod(w http.ResponseWriter, r *http.Request) {
 		tot.Receipts += x.Receipts
 		maxV = max(maxV, x.Sales, x.Receipts)
 	}
-	products, err := a.st.TopProducts(r.Context(), rng, 0, 10)
+	products, err := a.ts(r).TopProducts(r.Context(), rng, 0, 10)
 	if err != nil {
 		a.serverError(w, r, err)
 		return

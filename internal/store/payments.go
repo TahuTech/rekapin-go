@@ -38,10 +38,11 @@ WHERE ($1::bigint = 0 OR o.customer_id = $1)
   AND ($3 = '' OR p.method = $3)
   AND ($4 OR p.voided_at IS NULL)
   AND ($5::date IS NULL OR p.paid_at >= $5)
-  AND ($6::date IS NULL OR p.paid_at <= $6)`
+  AND ($6::date IS NULL OR p.paid_at <= $6)
+  AND p.store_id = $7`
 
-func (f PaymentFilter) args() []any {
-	return []any{f.CustomerID, f.OrderID, f.Method, f.ShowVoided, f.From, f.To}
+func (f PaymentFilter) args(storeID int64) []any {
+	return []any{f.CustomerID, f.OrderID, f.Method, f.ShowVoided, f.From, f.To, storeID}
 }
 
 // ListPayments mengembalikan log pembayaran beserta total nominal (non-void) sesuai filter.
@@ -50,33 +51,34 @@ func (s *Store) ListPayments(ctx context.Context, f PaymentFilter, p Page) ([]Pa
 	var sum int64
 	if err := s.db.QueryRow(ctx,
 		`SELECT COUNT(*), COALESCE(SUM(p.amount) FILTER (WHERE p.voided_at IS NULL), 0)::BIGINT
-		 FROM payments p JOIN orders o ON o.id = p.order_id`+paymentWhereSQL, f.args()...).Scan(&count, &sum); err != nil {
+		 FROM payments p JOIN orders o ON o.id = p.order_id`+paymentWhereSQL, f.args(s.sid())...).Scan(&count, &sum); err != nil {
 		return nil, 0, 0, err
 	}
-	args := append(f.args(), p.Limit(), p.Offset())
+	args := append(f.args(s.sid()), p.Limit(), p.Offset())
 	rows, err := s.db.Query(ctx, paymentSelectSQL+paymentWhereSQL+
-		` ORDER BY p.paid_at DESC, p.id DESC LIMIT $7 OFFSET $8`, args...)
+		` ORDER BY p.paid_at DESC, p.id DESC LIMIT $8 OFFSET $9`, args...)
 	list, err := collect[Payment](rows, err)
 	return list, count, sum, err
 }
 
 func (s *Store) PaymentByID(ctx context.Context, id int64) (Payment, error) {
-	rows, err := s.db.Query(ctx, paymentSelectSQL+` WHERE p.id = $1`, id)
+	rows, err := s.db.Query(ctx, paymentSelectSQL+` WHERE p.id = $1 AND p.store_id = $2`, id, s.sid())
 	return collectOne[Payment](rows, err)
 }
 
 func (s *Store) InsertPayment(ctx context.Context, in PaymentInput, userID int64) (int64, error) {
 	var id int64
 	err := s.db.QueryRow(ctx,
-		`INSERT INTO payments (order_id, amount, paid_at, method, note, invoice_id, created_by)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-		in.OrderID, in.Amount, in.PaidAt, in.Method, in.Note, in.InvoiceID, userID).Scan(&id)
+		`INSERT INTO payments (store_id, order_id, amount, paid_at, method, note, invoice_id, created_by)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+		s.sid(), in.OrderID, in.Amount, in.PaidAt, in.Method, in.Note, in.InvoiceID, userID).Scan(&id)
 	return id, err
 }
 
 func (s *Store) VoidPayment(ctx context.Context, id, userID int64) error {
 	tag, err := s.db.Exec(ctx,
-		`UPDATE payments SET voided_at = now(), voided_by = $2 WHERE id = $1 AND voided_at IS NULL`, id, userID)
+		`UPDATE payments SET voided_at = now(), voided_by = $2 WHERE id = $1 AND store_id = $3 AND voided_at IS NULL`,
+		id, userID, s.sid())
 	if err == nil && tag.RowsAffected() == 0 {
 		return ErrNotFound
 	}

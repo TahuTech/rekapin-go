@@ -1,0 +1,41 @@
+{{define "title"}}{{if .U.ID}}Edit{{else}}Tambah{{end}} Pengguna{{end}}
+{{define "content"}}
+{{$u := .U}}
+<div class="mb-6">
+  <a href="{{if $u.StoreID}}/master/stores/{{pid $u.StoreID}}{{else}}/master/users{{end}}" class="link text-sm">← Kembali</a>
+  <h1 class="page-title mt-1">{{if $u.ID}}Edit Pengguna{{else}}Tambah Pengguna{{end}}</h1>
+</div>
+<form method="post" action="{{if $u.ID}}/master/users/{{$u.ID}}{{else}}/master/users{{end}}" class="card max-w-2xl space-y-4 p-6">
+  {{template "error" .Error}}
+  <div class="grid gap-4 sm:grid-cols-2">
+    <label class="block"><span class="label">Username *</span><input name="username" value="{{$u.Username}}" class="input" required autocomplete="off" autofocus></label>
+    <label class="block"><span class="label">Nama Lengkap *</span><input name="name" value="{{$u.Name}}" class="input" required></label>
+  </div>
+  {{if .Self}}
+    {{/* Akun sendiri: role & status dikunci agar master tidak mengunci dirinya. */}}
+    <input type="hidden" name="role" value="master"><input type="hidden" name="active" value="on">
+  {{else}}
+  <div class="grid gap-4 sm:grid-cols-2">
+    <label class="block"><span class="label">Role *</span>
+      <select name="role" class="input">
+        <option value="admin" {{if eq $u.Role "admin"}}selected{{end}}>Admin toko</option>
+        <option value="master" {{if eq $u.Role "master"}}selected{{end}}>Master (kelola semua toko)</option>
+      </select>
+    </label>
+    <label class="block"><span class="label">Toko (wajib untuk admin)</span>
+      <select name="store_id" class="input">
+        <option value="0">— Pilih toko —</option>
+        {{$sel := pid $u.StoreID}}
+        {{range .Stores}}<option value="{{.ID}}" {{if eq .ID $sel}}selected{{end}}>{{.Name}}{{if not .Active}} (nonaktif){{end}}</option>{{end}}
+      </select>
+    </label>
+  </div>
+  <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="active" {{if $u.Active}}checked{{end}} class="h-4 w-4 rounded border-slate-300"> Aktif (boleh login)</label>
+  {{end}}
+  <label class="block"><span class="label">{{if $u.ID}}Password baru{{else}}Password *{{end}}</span>
+    <input type="password" name="password" class="input" minlength="8" autocomplete="new-password" {{if not $u.ID}}required{{end}}>
+    <span class="mt-1 block text-xs text-slate-500">Minimal 8 karakter.{{if $u.ID}} Kosongkan jika tidak diubah.{{end}}</span>
+  </label>
+  <div class="flex justify-end pt-2"><button class="btn-primary">Simpan</button></div>
+</form>
+{{end}}

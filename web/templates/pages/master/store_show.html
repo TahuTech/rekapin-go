@@ -1,0 +1,29 @@
+{{define "title"}}{{.Store.Name}}{{end}}
+{{define "content"}}
+{{$s := .Store}}
+<div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <a href="/master" class="link text-sm">← Daftar Toko</a>
+    <h1 class="page-title mt-1">{{$s.Name}}
+      {{if $s.Active}}<span class="badge bg-emerald-100 text-emerald-800 align-middle">Aktif</span>{{else}}<span class="badge bg-slate-200 text-slate-600 align-middle">Nonaktif</span>{{end}}
+    </h1>
+    {{with $s.Info}}<p class="mt-1 whitespace-pre-line text-sm text-slate-500">{{.}}</p>{{end}}
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <form method="post" action="/master/stores/{{$s.ID}}/enter"><button class="btn-primary">Buka toko</button></form>
+    <a href="/master/stores/{{$s.ID}}/edit" class="btn-secondary">Edit</a>
+    <form method="post" action="/master/stores/{{$s.ID}}/toggle"
+          hx-confirm="{{if $s.Active}}Nonaktifkan toko ini? Semua admin toko tidak bisa login.{{else}}Aktifkan kembali toko ini?{{end}}">
+      <button class="{{if $s.Active}}btn-danger{{else}}btn-secondary{{end}}">{{if $s.Active}}Nonaktifkan{{else}}Aktifkan{{end}}</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="font-semibold">Admin Toko</h2>
+    <a href="/master/users/new?store={{$s.ID}}" class="btn-primary btn-sm">+ Admin</a>
+  </div>
+  {{template "user-table" .Users}}
+</div>
+{{end}}

@@ -22,19 +22,44 @@ type DBTX interface {
 }
 
 type Store struct {
-	db   DBTX
-	pool *pgxpool.Pool
+	db      DBTX
+	pool    *pgxpool.Pool
+	storeID int64 // toko aktif; 0 = belum di-scope (hanya untuk query user/toko)
 }
 
 func New(pool *pgxpool.Pool) *Store {
 	return &Store{db: pool, pool: pool}
 }
 
+// ForStore mengembalikan Store yang semua query domainnya dibatasi ke satu toko.
+func (s *Store) ForStore(id int64) *Store {
+	return &Store{db: s.db, pool: s.pool, storeID: id}
+}
+
+// StoreID = toko aktif dari Store ter-scope.
+func (s *Store) StoreID() int64 { return s.storeID }
+
+// sid dipakai semua query data toko. Panic bila Store belum di-scope agar bug
+// gagal keras alih-alih membocorkan/menulis data lintas toko.
+func (s *Store) sid() int64 {
+	if s.storeID == 0 {
+		panic("store: query data toko tanpa ForStore")
+	}
+	return s.storeID
+}
+
 // WithTx menjalankan fn di dalam satu transaksi; rollback otomatis bila fn error.
+// Scope toko ikut diwariskan ke Store transaksi.
 func (s *Store) WithTx(ctx context.Context, fn func(tx *Store) error) error {
 	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		return fn(&Store{db: tx, pool: s.pool})
+		return fn(&Store{db: tx, pool: s.pool, storeID: s.storeID})
 	})
+}
+
+// IsUniqueViolation true bila err berasal dari pelanggaran constraint UNIQUE.
+func IsUniqueViolation(err error) bool {
+	var pg *pgconn.PgError
+	return errors.As(err, &pg) && pg.Code == "23505"
 }
 
 func notFound(err error) error {

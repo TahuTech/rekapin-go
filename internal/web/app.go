@@ -61,10 +61,30 @@ func (a *App) Routes() http.Handler {
 
 	mux.HandleFunc("GET /login", a.loginForm)
 	mux.HandleFunc("POST /login", a.login)
+	mux.HandleFunc("POST /logout", a.logout)
 
-	// Semua route di bawah ini wajib login.
+	// Menu master: kelola toko & akun admin. Wajib login sebagai master.
+	m := http.NewServeMux()
+	m.HandleFunc("GET /master", a.masterStores)
+	m.HandleFunc("GET /master/stores/new", a.masterStoreNew)
+	m.HandleFunc("POST /master/stores", a.masterStoreCreate)
+	m.HandleFunc("GET /master/stores/{id}", a.masterStoreShow)
+	m.HandleFunc("GET /master/stores/{id}/edit", a.masterStoreEdit)
+	m.HandleFunc("POST /master/stores/{id}", a.masterStoreUpdate)
+	m.HandleFunc("POST /master/stores/{id}/toggle", a.masterStoreToggle)
+	m.HandleFunc("POST /master/stores/{id}/enter", a.masterStoreEnter)
+	m.HandleFunc("POST /master/exit", a.masterStoreExit)
+	m.HandleFunc("GET /master/users", a.masterUsers)
+	m.HandleFunc("GET /master/users/new", a.masterUserNew)
+	m.HandleFunc("POST /master/users", a.masterUserCreate)
+	m.HandleFunc("GET /master/users/{id}/edit", a.masterUserEdit)
+	m.HandleFunc("POST /master/users/{id}", a.masterUserUpdate)
+	masterH := a.requireAuth(a.requireMaster(m))
+	mux.Handle("/master", masterH)
+	mux.Handle("/master/", masterH)
+
+	// Semua route di bawah ini wajib login dan dibatasi ke satu toko aktif.
 	p := http.NewServeMux()
-	p.HandleFunc("POST /logout", a.logout)
 	p.HandleFunc("GET /{$}", a.dashboard)
 
 	p.HandleFunc("GET /customers", a.customerList)
@@ -105,7 +125,7 @@ func (a *App) Routes() http.Handler {
 	p.HandleFunc("GET /reports/customers", a.reportCustomers)
 	p.HandleFunc("GET /reports/period", a.reportPeriod)
 
-	mux.Handle("/", a.requireAuth(p))
+	mux.Handle("/", a.requireAuth(a.withTenant(p)))
 
 	// CrossOriginProtection (Go 1.25) menolak POST lintas origin -> proteksi CSRF tanpa token.
 	csrf := http.NewCrossOriginProtection()

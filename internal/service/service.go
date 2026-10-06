@@ -34,6 +34,9 @@ type Service struct {
 
 func New(st *store.Store) *Service { return &Service{st: st} }
 
+// ForStore mengembalikan Service yang beroperasi pada data satu toko.
+func (s *Service) ForStore(id int64) *Service { return &Service{st: s.st.ForStore(id)} }
+
 // ---------- Transaksi penjualan ----------
 
 func validateOrder(in *store.OrderInput) (int64, error) {

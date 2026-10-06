@@ -1,0 +1,30 @@
+{{define "title"}}Daftar Toko{{end}}
+{{define "content"}}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="page-title">Daftar Toko</h1>
+    <p class="text-sm text-slate-500">Kelola toko pengguna Rekapin beserta akun admin masing-masing.</p>
+  </div>
+  <a href="/master/stores/new" class="btn-primary">+ Toko</a>
+</div>
+<div class="card overflow-x-auto">
+<table class="table">
+  <thead><tr><th>Nama Toko</th><th class="text-right">Admin</th><th>Status</th><th>Dibuat</th><th></th></tr></thead>
+  <tbody>
+  {{$acting := .ActingID}}
+  {{range .Stores}}
+    <tr class="{{if not .Active}}text-slate-400{{end}}">
+      <td><a href="/master/stores/{{.ID}}" class="link font-medium">{{.Name}}</a>{{if eq .ID $acting}} <span class="badge bg-indigo-100 text-indigo-700">Sedang dibuka</span>{{end}}</td>
+      <td class="num">{{.AdminCount}}</td>
+      <td>{{if .Active}}<span class="badge bg-emerald-100 text-emerald-800">Aktif</span>{{else}}<span class="badge bg-slate-200 text-slate-600">Nonaktif</span>{{end}}</td>
+      <td class="whitespace-nowrap">{{date .CreatedAt}}</td>
+      <td class="whitespace-nowrap text-right">
+        <form method="post" action="/master/stores/{{.ID}}/enter" class="inline"><button class="btn-primary btn-sm">Buka toko</button></form>
+        <a href="/master/stores/{{.ID}}" class="btn-secondary btn-sm">Kelola</a>
+      </td>
+    </tr>
+  {{else}}{{template "empty" "Belum ada toko"}}{{end}}
+  </tbody>
+</table>
+</div>
+{{end}}

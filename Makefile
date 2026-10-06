@@ -57,8 +57,8 @@ dev-reset: ## hapus container + data DB dev
 db-up: ## Postgres saja (untuk mode native: go run ./cmd/rekapin serve)
 	$(COMPOSE) up -d --wait db
 
-admin: ## buat/reset admin dev: admin / admin12345
-	printf 'admin12345\n' | $(COMPOSE) exec -T app go run ./cmd/rekapin user create admin Administrator
+admin: ## buat/reset master dev: admin / admin12345
+	printf 'admin12345\n' | $(COMPOSE) exec -T app go run ./cmd/rekapin user create -role master admin Administrator
 
 psql:
 	$(COMPOSE) exec db psql -U rekapin rekapin

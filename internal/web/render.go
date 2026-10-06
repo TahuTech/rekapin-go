@@ -58,10 +58,17 @@ func (a *App) render(w http.ResponseWriter, r *http.Request, status int, page, b
 	if data == nil {
 		data = D{}
 	}
-	data["User"] = userFrom(r.Context())
+	u, tenant := userFrom(r.Context()), tenantFrom(r.Context())
+	data["User"] = u
+	data["IsMaster"] = u.IsMaster()
+	data["Tenant"] = tenant
 	data["Path"] = r.URL.Path
-	data["Company"] = a.cfg.CompanyName
-	data["CompanyInfo"] = a.cfg.CompanyInfo
+	// Identitas toko (sidebar, kop invoice) dari toko aktif; halaman tanpa toko memakai config.
+	if tenant != nil {
+		data["Company"], data["CompanyInfo"] = tenant.Name, tenant.Info
+	} else {
+		data["Company"], data["CompanyInfo"] = a.cfg.CompanyName, a.cfg.CompanyInfo
+	}
 	if block == "base" || block == "print" {
 		data["Flash"] = a.sessions.PopString(r.Context(), "flash")
 	}

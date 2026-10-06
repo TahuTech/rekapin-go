@@ -17,12 +17,12 @@ func (a *App) orderList(w http.ResponseWriter, r *http.Request) {
 		Q:          strings.TrimSpace(q.Get("q")),
 		DateRange:  dateRange(q, false),
 	}
-	list, total, err := a.st.ListOrders(r.Context(), f, store.Page{Num: pageNum(q), Size: pageSize})
+	list, total, err := a.ts(r).ListOrders(r.Context(), f, store.Page{Num: pageNum(q), Size: pageSize})
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
-	customers, err := a.st.CustomerOptions(r.Context())
+	customers, err := a.ts(r).CustomerOptions(r.Context())
 	if err != nil {
 		a.serverError(w, r, err)
 		return
@@ -37,11 +37,11 @@ func (a *App) orderList(w http.ResponseWriter, r *http.Request) {
 
 // orderFormData memuat data dropdown untuk form transaksi.
 func (a *App) orderFormData(r *http.Request, data D) (D, error) {
-	customers, err := a.st.CustomerOptions(r.Context())
+	customers, err := a.ts(r).CustomerOptions(r.Context())
 	if err != nil {
 		return nil, err
 	}
-	products, err := a.st.ListProducts(r.Context(), "", true)
+	products, err := a.ts(r).ListProducts(r.Context(), "", true)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (a *App) orderNew(w http.ResponseWriter, r *http.Request) {
 
 // orderItemRow mengembalikan satu baris item kosong (ditambahkan via hx-swap="beforeend").
 func (a *App) orderItemRow(w http.ResponseWriter, r *http.Request) {
-	products, err := a.st.ListProducts(r.Context(), "", true)
+	products, err := a.ts(r).ListProducts(r.Context(), "", true)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
@@ -122,7 +122,7 @@ func (a *App) orderCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	dpMethod := r.PostFormValue("dp_method")
 	if msg == "" {
-		id, err := a.svc.CreateOrder(r.Context(), in, dp, dpMethod, userFrom(r.Context()).ID)
+		id, err := a.tsvc(r).CreateOrder(r.Context(), in, dp, dpMethod, userFrom(r.Context()).ID)
 		if msg, _ = a.handleErr(w, r, err); err == nil {
 			a.flash(r, "Transaksi berhasil disimpan")
 			a.redirect(w, r, "/orders/"+strconv.FormatInt(id, 10))
@@ -153,21 +153,21 @@ func (a *App) orderShow(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) renderOrderShow(w http.ResponseWriter, r *http.Request, id int64, data D) {
 	ctx := r.Context()
-	o, err := a.st.OrderByID(ctx, id)
+	o, err := a.ts(r).OrderByID(ctx, id)
 	if _, done := a.handleErr(w, r, err); done {
 		return
 	}
-	items, err := a.st.OrderItems(ctx, id)
+	items, err := a.ts(r).OrderItems(ctx, id)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
-	payments, _, _, err := a.st.ListPayments(ctx, store.PaymentFilter{OrderID: id, ShowVoided: true}, store.Page{Size: 500})
+	payments, _, _, err := a.ts(r).ListPayments(ctx, store.PaymentFilter{OrderID: id, ShowVoided: true}, store.Page{Size: 500})
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
-	locked, err := a.st.OrderHasHistory(ctx, id)
+	locked, err := a.ts(r).OrderHasHistory(ctx, id)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
@@ -181,11 +181,11 @@ func (a *App) renderOrderShow(w http.ResponseWriter, r *http.Request, id int64, 
 
 func (a *App) orderEdit(w http.ResponseWriter, r *http.Request) {
 	id := pathID(r)
-	o, err := a.st.OrderByID(r.Context(), id)
+	o, err := a.ts(r).OrderByID(r.Context(), id)
 	if _, done := a.handleErr(w, r, err); done {
 		return
 	}
-	items, err := a.st.OrderItems(r.Context(), id)
+	items, err := a.ts(r).OrderItems(r.Context(), id)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
@@ -203,7 +203,7 @@ func (a *App) orderUpdate(w http.ResponseWriter, r *http.Request) {
 	id := pathID(r)
 	in, msg := parseOrderForm(r)
 	if msg == "" {
-		err := a.svc.UpdateOrder(r.Context(), id, in)
+		err := a.tsvc(r).UpdateOrder(r.Context(), id, in)
 		if msg, _ = a.handleErr(w, r, err); err == nil {
 			a.flash(r, "Transaksi diperbarui")
 			a.redirect(w, r, "/orders/"+strconv.FormatInt(id, 10))
@@ -217,7 +217,7 @@ func (a *App) orderUpdate(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) orderDelete(w http.ResponseWriter, r *http.Request) {
 	id := pathID(r)
-	err := a.svc.DeleteOrder(r.Context(), id)
+	err := a.tsvc(r).DeleteOrder(r.Context(), id)
 	if msg, done := a.handleErr(w, r, err); done {
 		return
 	} else if msg != "" {

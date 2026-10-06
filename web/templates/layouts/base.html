@@ -20,6 +20,12 @@
         <span class="font-semibold">{{.Company}}</span>
         <span class="w-6"></span>
       </header>
+      {{if and .IsMaster .Tenant}}
+      <div class="flex flex-wrap items-center justify-between gap-2 bg-amber-100 px-4 py-2 text-sm text-amber-900 lg:px-8">
+        <span>Mode master: Anda sedang membuka toko <strong>{{.Tenant.Name}}</strong>{{if not .Tenant.Active}} (nonaktif){{end}}.</span>
+        <form method="post" action="/master/exit"><button class="font-medium underline hover:no-underline">Tutup toko &amp; kembali ke panel master</button></form>
+      </div>
+      {{end}}
       <main class="mx-auto w-full max-w-7xl flex-1 p-4 lg:p-8">
         {{template "flash" .}}
         {{template "content" .}}
@@ -38,10 +44,17 @@
     <span class="grid h-8 w-8 place-items-center rounded-lg bg-indigo-500 font-bold text-white">R</span>
     <div class="leading-tight">
       <div class="font-semibold text-white">Rekapin</div>
-      <div class="text-xs text-slate-400">{{.Company}}</div>
+      <div class="text-xs text-slate-400">{{if .Tenant}}{{.Company}}{{else}}Panel Master{{end}}</div>
     </div>
   </div>
   <nav class="flex-1 space-y-1 px-3 py-2 text-sm">
+    {{if .IsMaster}}
+    <div class="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Master</div>
+    {{template "navlink" dict "Href" "/master" "Label" "Daftar Toko" "Path" .Path}}
+    {{template "navlink" dict "Href" "/master/users" "Label" "Pengguna" "Path" .Path}}
+    {{end}}
+    {{if .Tenant}}
+    {{if .IsMaster}}<div class="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wider text-amber-400">Toko: {{.Tenant.Name}}</div>{{end}}
     {{template "navlink" dict "Href" "/" "Label" "Dashboard" "Path" .Path}}
     <div class="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Data</div>
     {{template "navlink" dict "Href" "/customers" "Label" "Customer" "Path" .Path}}
@@ -53,6 +66,7 @@
     <div class="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Rekap</div>
     {{template "navlink" dict "Href" "/reports/customers" "Label" "Per Customer" "Path" .Path}}
     {{template "navlink" dict "Href" "/reports/period" "Label" "Per Periode" "Path" .Path}}
+    {{end}}
   </nav>
   <div class="border-t border-slate-800 p-4 text-sm">
     <div class="truncate text-white">{{.User.Name}}</div>

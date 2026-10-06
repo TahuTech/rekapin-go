@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"sync"
 	"testing"
@@ -32,17 +33,28 @@ func setup(t *testing.T) (*store.Store, *service.Service, int64) {
 		t.Fatal(err)
 	}
 	reset(t, pool)
-	st := store.New(pool)
-	uid, err := st.CreateUser(ctx, "tester", "Tester", "x")
+	base := store.New(pool)
+	sid := newTenant(t, base, "Toko Test")
+	uid, err := base.CreateUser(ctx, store.UserInput{Username: "tester", Name: "Tester", Role: store.RoleAdmin, StoreID: &sid, Active: true}, "x")
 	if err != nil {
 		t.Fatal(err)
 	}
-	return st, service.New(st), uid
+	st := base.ForStore(sid)
+	return st, service.New(base).ForStore(sid), uid
+}
+
+func newTenant(t *testing.T, st *store.Store, name string) int64 {
+	t.Helper()
+	id, err := st.CreateTenant(context.Background(), store.TenantInput{Name: name, Active: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return id
 }
 
 func reset(t *testing.T, pool *pgxpool.Pool) {
 	_, err := pool.Exec(context.Background(),
-		`TRUNCATE payments, invoice_orders, invoices, order_items, orders, products, customers, doc_counters, users RESTART IDENTITY CASCADE`)
+		`TRUNCATE payments, invoice_orders, invoices, order_items, orders, products, customers, doc_counters, users, stores RESTART IDENTITY CASCADE`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,4 +236,63 @@ func TestVoidRestoresRemaining(t *testing.T) {
 	if err := svc.VoidPayment(ctx, pid, uid); err == nil {
 		t.Fatal("void kedua seharusnya gagal")
 	}
+}
+
+// Data toko lain tidak boleh terbaca maupun termodifikasi lewat Store/Service toko berbeda.
+func TestStoreIsolation(t *testing.T) {
+	stA, svcA, uid := setup(t)
+	ctx := context.Background()
+	cidA, oidA := newOrder(t, stA, svcA, uid, 100000)
+
+	stB := stA.ForStore(newTenant(t, stA, "Toko B"))
+	svcB := service.New(stA).ForStore(stB.StoreID())
+
+	// Baca lintas toko -> tidak ditemukan / kosong.
+	if _, err := stB.OrderByID(ctx, oidA); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("OrderByID lintas toko: %v", err)
+	}
+	if _, err := stB.CustomerByID(ctx, cidA); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("CustomerByID lintas toko: %v", err)
+	}
+	if list, total, err := stB.ListOrders(ctx, store.OrderFilter{}, store.Page{}); err != nil || total != 0 || len(list) != 0 {
+		t.Fatalf("ListOrders toko B: total=%d err=%v", total, err)
+	}
+	if d, err := stB.Dashboard(ctx, day, day); err != nil || d.Receivable != 0 || d.CustomerCount != 0 {
+		t.Fatalf("dashboard toko B bocor: %+v err=%v", d, err)
+	}
+
+	// Tulis lintas toko -> ditolak.
+	if _, err := svcB.AddPayment(ctx, store.PaymentInput{OrderID: oidA, Amount: 1000, Method: "cash", PaidAt: day}, uid); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("AddPayment lintas toko: %v", err)
+	}
+	if err := svcB.DeleteOrder(ctx, oidA); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("DeleteOrder lintas toko: %v", err)
+	}
+	if err := stB.UpdateCustomer(ctx, cidA, store.CustomerInput{Name: "Hack"}); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("UpdateCustomer lintas toko: %v", err)
+	}
+	// FK komposit menolak order toko B yang menunjuk customer toko A.
+	_, err := svcB.CreateOrder(ctx, store.OrderInput{CustomerID: cidA, OrderDate: day,
+		Items: []store.OrderItemInput{{ProductName: "X", Qty: 1, UnitPrice: 1000}}}, 0, "", uid)
+	if err == nil {
+		t.Fatal("order ke customer toko lain seharusnya gagal")
+	}
+
+	// Nomor dokumen dihitung per toko.
+	_, oidB := newOrder(t, stB, svcB, uid, 5000)
+	if o, _ := stB.OrderByID(ctx, oidB); o.Code != "TRX/2026/10/0001" {
+		t.Fatalf("kode toko B = %s, want TRX/2026/10/0001", o.Code)
+	}
+	if o, _ := stA.OrderByID(ctx, oidA); o.Remaining != 100000 {
+		t.Fatalf("order toko A berubah: remaining=%d", o.Remaining)
+	}
+}
+
+func TestUnscopedStorePanics(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("query tanpa ForStore seharusnya panic")
+		}
+	}()
+	_, _ = store.New(nil).CustomerOptions(context.Background())
 }

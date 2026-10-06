@@ -27,7 +27,7 @@ Nomor dokumen otomatis per bulan: `TRX/2026/10/0001`, `INV/…`, `LNS/…`.
 
 ```bash
 make dev          # Postgres + app dengan hot reload → http://localhost:8080
-make admin        # (terminal lain) buat admin dev: admin / admin12345
+make admin        # (terminal lain) buat akun master dev: admin / admin12345
 ```
 
 Setiap perubahan `.go`, `.html`, `.css`, `.js`, atau migrasi `.sql` otomatis memicu build Tailwind →
@@ -47,13 +47,22 @@ Port bisa diubah bila bentrok: `DB_PORT=5434 APP_PORT=8081 make dev`
 
 Bila perubahan file tidak terdeteksi (Docker Desktop macOS/Windows), set `poll = true` di `.air.toml`.
 
+### Multi-toko & akun master
+
+- **Master** login ke `/master`: membuat toko, membuat/menonaktifkan admin per toko, dan
+  "Buka toko" untuk melihat data toko mana pun (banner kuning menandai mode ini).
+- **Admin** hanya melihat data tokonya sendiri; nama & alamat toko (sidebar, kop invoice)
+  diatur di menu master, bukan lagi dari `COMPANY_NAME`/`COMPANY_INFO`.
+- CLI: `rekapin user create -role master <username> <nama>`,
+  `rekapin store create <nama>`, `rekapin user create -store <id> <username> <nama>`.
+
 ### Opsi B — Go native (Go ≥ 1.26)
 
 ```bash
 make db-up                      # Postgres saja (container)
 export DATABASE_URL='postgres://rekapin:rekapin@127.0.0.1:5433/rekapin?sslmode=disable'
 make css                        # unduh Tailwind standalone CLI & build CSS
-go run ./cmd/rekapin user create admin "Administrator"
+go run ./cmd/rekapin user create -role master admin "Administrator"
 make run                        # http://127.0.0.1:8080 (jalankan `make css-watch` di terminal lain)
 
 TEST_DATABASE_URL='postgres://rekapin:rekapin@127.0.0.1:5433/rekapin_test?sslmode=disable' make test
@@ -81,7 +90,7 @@ sudo cp .env.example /opt/rekapin/.env && sudo nano /opt/rekapin/.env
 sudo chown -R root:rekapin /opt/rekapin && sudo chmod 640 /opt/rekapin/.env
 sudo cp deploy/rekapin.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now rekapin
-cd /opt/rekapin && sudo -u rekapin env $(sudo cat .env | xargs) ./rekapin user create admin "Administrator"
+cd /opt/rekapin && sudo -u rekapin env $(sudo cat .env | xargs) ./rekapin user create -role master admin "Administrator"
 
 # 4. Caddy (HTTPS otomatis)
 sudo apt install -y caddy
@@ -98,7 +107,7 @@ Update versi: `make build-docker` (atau `make build`), salin binary baru ke `/op
 ## Struktur
 
 ```
-cmd/rekapin/          entry point: serve | migrate | user create
+cmd/rekapin/          entry point: serve | migrate | user create | store create
 internal/config       konfigurasi dari env
 internal/db           pgxpool + migrasi goose (SQL ter-embed)
 internal/store        query per domain (pgx)

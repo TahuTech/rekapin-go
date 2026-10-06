@@ -12,12 +12,12 @@ import (
 func (a *App) invoiceList(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	f := store.InvoiceFilter{CustomerID: formInt(q.Get("customer_id")), Type: q.Get("type"), DateRange: dateRange(q, false)}
-	list, total, err := a.st.ListInvoices(r.Context(), f, store.Page{Num: pageNum(q), Size: pageSize})
+	list, total, err := a.ts(r).ListInvoices(r.Context(), f, store.Page{Num: pageNum(q), Size: pageSize})
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
-	customers, err := a.st.CustomerOptions(r.Context())
+	customers, err := a.ts(r).CustomerOptions(r.Context())
 	if err != nil {
 		a.serverError(w, r, err)
 		return
@@ -54,14 +54,14 @@ func (a *App) invoiceNew(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) renderInvoiceForm(w http.ResponseWriter, r *http.Request, req service.InvoiceRequest, msg string) {
-	customers, err := a.st.CustomerOptions(r.Context())
+	customers, err := a.ts(r).CustomerOptions(r.Context())
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
 	data := D{"Req": req, "Customers": customers, "Error": msg, "Selected": selectedSet(req.OrderIDs), "SelectAll": len(req.OrderIDs) == 0}
 	if req.CustomerID > 0 {
-		orders, err := a.st.OutstandingOrders(r.Context(), req.CustomerID)
+		orders, err := a.ts(r).OutstandingOrders(r.Context(), req.CustomerID)
 		if err != nil {
 			a.serverError(w, r, err)
 			return
@@ -84,7 +84,7 @@ func (a *App) invoiceOutstanding(w http.ResponseWriter, r *http.Request) {
 	cid := formInt(r.URL.Query().Get("customer_id"))
 	data := D{"Selected": map[int64]bool{}, "SelectAll": true}
 	if cid > 0 {
-		orders, err := a.st.OutstandingOrders(r.Context(), cid)
+		orders, err := a.ts(r).OutstandingOrders(r.Context(), cid)
 		if err != nil {
 			a.serverError(w, r, err)
 			return
@@ -113,7 +113,7 @@ func (a *App) invoiceCreate(w http.ResponseWriter, r *http.Request) {
 			req.OrderIDs = append(req.OrderIDs, id)
 		}
 	}
-	id, err := a.svc.CreateInvoice(r.Context(), req, userFrom(r.Context()).ID)
+	id, err := a.tsvc(r).CreateInvoice(r.Context(), req, userFrom(r.Context()).ID)
 	msg, done := a.handleErr(w, r, err)
 	if done {
 		return
@@ -132,16 +132,16 @@ func (a *App) invoiceCreate(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) invoiceData(w http.ResponseWriter, r *http.Request) (D, bool) {
 	id := pathID(r)
-	inv, err := a.st.InvoiceByID(r.Context(), id)
+	inv, err := a.ts(r).InvoiceByID(r.Context(), id)
 	if _, done := a.handleErr(w, r, err); done {
 		return nil, false
 	}
-	lines, err := a.st.InvoiceLines(r.Context(), id)
+	lines, err := a.ts(r).InvoiceLines(r.Context(), id)
 	if err != nil {
 		a.serverError(w, r, err)
 		return nil, false
 	}
-	payments, err := a.st.InvoicePayments(r.Context(), id)
+	payments, err := a.ts(r).InvoicePayments(r.Context(), id)
 	if err != nil {
 		a.serverError(w, r, err)
 		return nil, false

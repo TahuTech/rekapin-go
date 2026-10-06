@@ -2,16 +2,38 @@ package store
 
 import "time"
 
+const (
+	RoleMaster = "master" // mengelola semua toko & akun admin
+	RoleAdmin  = "admin"  // admin satu toko
+)
+
 type User struct {
 	ID           int64     `db:"id"`
 	Username     string    `db:"username"`
 	Name         string    `db:"name"`
 	PasswordHash string    `db:"password_hash"`
+	Role         string    `db:"role"`
+	StoreID      *int64    `db:"store_id"` // nil untuk master
+	StoreName    *string   `db:"store_name"`
+	Active       bool      `db:"active"`
 	CreatedAt    time.Time `db:"created_at"`
+}
+
+func (u *User) IsMaster() bool { return u != nil && u.Role == RoleMaster }
+
+// Tenant = satu toko pengguna aplikasi (tabel stores).
+type Tenant struct {
+	ID         int64     `db:"id"`
+	Name       string    `db:"name"`
+	Info       string    `db:"info"`
+	Active     bool      `db:"active"`
+	CreatedAt  time.Time `db:"created_at"`
+	AdminCount int64     `db:"admin_count"`
 }
 
 type Customer struct {
 	ID         int64      `db:"id"`
+	StoreID    int64      `db:"store_id"`
 	Name       string     `db:"name"`
 	Phone      string     `db:"phone"`
 	Address    string     `db:"address"`
@@ -31,6 +53,7 @@ type CustomerSummary struct {
 
 type Product struct {
 	ID        int64     `db:"id"`
+	StoreID   int64     `db:"store_id"`
 	Name      string    `db:"name"`
 	Unit      string    `db:"unit"`
 	Price     int64     `db:"price"`

@@ -10,7 +10,7 @@ import (
 
 func (a *App) productList(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
-	list, err := a.st.ListProducts(r.Context(), q, false)
+	list, err := a.ts(r).ListProducts(r.Context(), q, false)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
@@ -50,7 +50,7 @@ func (a *App) productCreate(w http.ResponseWriter, r *http.Request) {
 		a.page(w, r, "products/form", D{"Error": msg, "Product": store.Product{Name: in.Name, Unit: in.Unit, Price: in.Price, Active: in.Active}})
 		return
 	}
-	if _, err := a.st.CreateProduct(r.Context(), in); err != nil {
+	if _, err := a.ts(r).CreateProduct(r.Context(), in); err != nil {
 		a.serverError(w, r, err)
 		return
 	}
@@ -59,7 +59,7 @@ func (a *App) productCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) productEdit(w http.ResponseWriter, r *http.Request) {
-	p, err := a.st.ProductByID(r.Context(), pathID(r))
+	p, err := a.ts(r).ProductByID(r.Context(), pathID(r))
 	if _, done := a.handleErr(w, r, err); done {
 		return
 	}
@@ -73,7 +73,7 @@ func (a *App) productUpdate(w http.ResponseWriter, r *http.Request) {
 		a.page(w, r, "products/form", D{"Error": msg, "Product": store.Product{ID: id, Name: in.Name, Unit: in.Unit, Price: in.Price, Active: in.Active}})
 		return
 	}
-	if _, done := a.handleErr(w, r, a.st.UpdateProduct(r.Context(), id, in)); done {
+	if _, done := a.handleErr(w, r, a.ts(r).UpdateProduct(r.Context(), id, in)); done {
 		return
 	}
 	a.flash(r, "Barang diperbarui")
@@ -81,7 +81,7 @@ func (a *App) productUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) productToggle(w http.ResponseWriter, r *http.Request) {
-	if err := a.st.ToggleProduct(r.Context(), pathID(r)); err != nil {
+	if err := a.ts(r).ToggleProduct(r.Context(), pathID(r)); err != nil {
 		a.serverError(w, r, err)
 		return
 	}

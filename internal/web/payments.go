@@ -17,12 +17,12 @@ func (a *App) paymentList(w http.ResponseWriter, r *http.Request) {
 		ShowVoided: q.Get("voided") == "1",
 		DateRange:  dateRange(q, false),
 	}
-	list, total, sum, err := a.st.ListPayments(r.Context(), f, store.Page{Num: pageNum(q), Size: pageSize})
+	list, total, sum, err := a.ts(r).ListPayments(r.Context(), f, store.Page{Num: pageNum(q), Size: pageSize})
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
-	customers, err := a.st.CustomerOptions(r.Context())
+	customers, err := a.ts(r).CustomerOptions(r.Context())
 	if err != nil {
 		a.serverError(w, r, err)
 		return
@@ -49,7 +49,7 @@ func (a *App) paymentCreate(w http.ResponseWriter, r *http.Request) {
 	if perr != nil {
 		msg = "Nominal tidak valid"
 	} else {
-		_, err := a.svc.AddPayment(r.Context(), in, userFrom(r.Context()).ID)
+		_, err := a.tsvc(r).AddPayment(r.Context(), in, userFrom(r.Context()).ID)
 		var done bool
 		if msg, done = a.handleErr(w, r, err); done {
 			return
@@ -66,11 +66,11 @@ func (a *App) paymentCreate(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) paymentVoid(w http.ResponseWriter, r *http.Request) {
 	id := pathID(r)
-	p, err := a.st.PaymentByID(r.Context(), id)
+	p, err := a.ts(r).PaymentByID(r.Context(), id)
 	if _, done := a.handleErr(w, r, err); done {
 		return
 	}
-	if err := a.svc.VoidPayment(r.Context(), id, userFrom(r.Context()).ID); err != nil {
+	if err := a.tsvc(r).VoidPayment(r.Context(), id, userFrom(r.Context()).ID); err != nil {
 		if _, done := a.handleErr(w, r, err); done {
 			return
 		}
