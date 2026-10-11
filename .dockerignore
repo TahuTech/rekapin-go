@@ -1,0 +1,14 @@
+.git
+.gitignore
+bin/
+tmp/
+backups/
+.env
+.env.*
+*.log
+deploy/
+compose*.yaml
+Dockerfile*
+.dockerignore
+.air.toml
+README.md

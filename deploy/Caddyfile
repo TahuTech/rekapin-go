@@ -1,6 +1,7 @@
 # Ganti domain. Caddy mengurus sertifikat HTTPS otomatis.
 rekap.example.com {
 	encode zstd gzip
+	# Mode Docker (compose.prod.yaml): reverse_proxy 127.0.0.1:8081
 	reverse_proxy 127.0.0.1:8080
 	log {
 		output file /var/log/caddy/rekapin.log {

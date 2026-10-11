@@ -2,3 +2,5 @@
 .env
 *.log
 /tmp/
+.env.prod
+/backups/

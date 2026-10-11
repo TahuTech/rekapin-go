@@ -5,7 +5,8 @@ GOOS ?= linux
 GOARCH ?= amd64
 
 .PHONY: css css-watch build run test migrate tools clean \
-	dev dev-down dev-reset db-up admin psql logs test-docker build-docker
+	dev dev-down dev-reset db-up admin psql logs test-docker build-docker \
+	prod-up prod-down prod-ps prod-logs prod-admin prod-psql prod-backup
 
 # Dipakai compose.yaml agar container berjalan sebagai user host.
 export UID := $(shell id -u)
@@ -72,3 +73,31 @@ test-docker:
 # Binary produksi linux/amd64 dibangun di container (host tidak perlu Go).
 build-docker:
 	$(COMPOSE) run --rm --no-deps app sh -c 'tailwindcss -i web/tailwind/input.css -o web/static/app.css --minify && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o bin/rekapin ./cmd/rekapin'
+
+# ---------- Produksi via Docker (VPS): app :8081, Postgres :5435 ----------
+# Konfigurasi di .env.prod (salin dari .env.prod.example).
+PROD := $(COMPOSE) -f compose.prod.yaml --env-file .env.prod
+
+.env.prod:
+	@echo "Buat dulu: cp .env.prod.example .env.prod (lalu ganti password)"; exit 1
+
+prod-up: .env.prod ## build image + jalankan db & app di background
+	$(PROD) up -d --build --wait
+
+prod-down: .env.prod
+	$(PROD) down
+
+prod-ps: .env.prod
+	$(PROD) ps
+
+prod-logs: .env.prod
+	$(PROD) logs -f app
+
+prod-admin: .env.prod ## buat/reset akun master (password diminta interaktif)
+	$(PROD) exec app /rekapin user create -role master $(or $(USER_NAME),admin) Administrator
+
+prod-psql: .env.prod
+	$(PROD) exec db sh -c 'psql -U "$$POSTGRES_USER" "$$POSTGRES_DB"'
+
+prod-backup: .env.prod ## dump DB ke backups/, simpan 7 hari
+	./deploy/backup-docker.sh

@@ -68,7 +68,44 @@ make run                        # http://127.0.0.1:8080 (jalankan `make css-watc
 TEST_DATABASE_URL='postgres://rekapin:rekapin@127.0.0.1:5433/rekapin_test?sslmode=disable' make test
 ```
 
-## Deploy ke VPS (Ubuntu/Debian, 1 GB RAM)
+## Deploy ke VPS dengan Docker (disarankan)
+
+App di port **8081**, PostgreSQL di port **5435** (default hanya `127.0.0.1`). Image app berbasis
+distroless (binary statis, non-root, filesystem read-only); migrasi skema otomatis saat start.
+
+```bash
+# 1. Docker + swap (lihat langkah swap di bagian berikutnya bila RAM 1 GB)
+curl -fsSL https://get.docker.com | sudo sh
+
+# 2. Ambil kode & konfigurasi
+git clone <repo> rekapin && cd rekapin
+cp .env.prod.example .env.prod && nano .env.prod   # WAJIB ganti POSTGRES_PASSWORD
+
+# 3. Jalankan
+make prod-up        # build image + start db & app (tunggu sampai healthy)
+make prod-admin     # buat akun master (password diminta); ganti username: make prod-admin USER_NAME=budi
+
+# 4. Firewall
+sudo ufw allow 8081/tcp     # jangan buka 5435 kecuali DB memang perlu diakses dari luar
+```
+
+Buka `http://IP_VPS:8081`. Bila memakai domain + HTTPS (Caddy), set `APP_BIND=127.0.0.1` dan
+`SECURE_COOKIE=true` di `.env.prod`, lalu arahkan Caddy ke `127.0.0.1:8081` (lihat `deploy/Caddyfile`).
+
+| Perintah | Fungsi |
+|---|---|
+| `make prod-up` | Build & jalankan / update (setelah `git pull`) |
+| `make prod-down` | Hentikan (data DB tetap di volume `rekapin-prod_pgdata`) |
+| `make prod-ps` / `make prod-logs` | Status container / log app |
+| `make prod-psql` | Masuk psql |
+| `make prod-backup` | Dump DB ke `backups/` (retensi 7 hari) |
+
+Akses DB dari laptop via SSH tunnel: `ssh -L 5435:127.0.0.1:5435 user@IP_VPS`, lalu konek ke `127.0.0.1:5435`.
+
+Backup harian (cron root): `15 2 * * * /path/ke/rekapin/deploy/backup-docker.sh`.
+Restore: `docker compose -f compose.prod.yaml --env-file .env.prod exec -T db pg_restore -U rekapin -d rekapin --clean < backups/rekapin-YYYY-MM-DD.dump`.
+
+## Deploy ke VPS tanpa Docker (systemd, Ubuntu/Debian, 1 GB RAM)
 
 ```bash
 # 1. Swap 1 GB (penting di RAM 1 GB)
