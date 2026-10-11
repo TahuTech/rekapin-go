@@ -89,8 +89,41 @@ make prod-admin     # buat akun master (password diminta); ganti username: make 
 sudo ufw allow 8081/tcp     # jangan buka 5435 kecuali DB memang perlu diakses dari luar
 ```
 
-Buka `http://IP_VPS:8081`. Bila memakai domain + HTTPS (Caddy), set `APP_BIND=127.0.0.1` dan
-`SECURE_COOKIE=true` di `.env.prod`, lalu arahkan Caddy ke `127.0.0.1:8081` (lihat `deploy/Caddyfile`).
+Buka `http://IP_VPS:8081`.
+
+### Subdomain di VPS yang sama dengan project utama (Nginx)
+
+Contoh: project utama di `domainanda.com`, Rekapin di `rekap.domainanda.com`. Nginx host yang sudah
+ada cukup ditambah satu server block; project utama tidak terpengaruh.
+
+```bash
+# 1. DNS: A record  rekap.domainanda.com -> IP VPS
+
+# 2. .env.prod: app hanya bisa diakses lewat Nginx, cookie hanya dikirim lewat HTTPS
+#    APP_BIND=127.0.0.1
+#    SECURE_COOKIE=true
+make prod-up
+
+# 3. Nginx + HTTPS
+sudo cp deploy/nginx/rekapin.conf /etc/nginx/sites-available/rekapin.conf
+sudo sed -i 's/rekap.example.com/rekap.domainanda.com/' /etc/nginx/sites-available/rekapin.conf
+sudo ln -s /etc/nginx/sites-available/rekapin.conf /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d rekap.domainanda.com
+
+# 4. Port 8081 tidak perlu dibuka di firewall (cukup 80/443 yang sudah dipakai project utama)
+sudo ufw delete allow 8081/tcp 2>/dev/null || true
+```
+
+`proxy_set_header Host $http_host` di config Nginx **wajib**: proteksi CSRF membandingkan `Origin`
+dengan `Host`. Tanpa header ini, semua form POST (termasuk login) ditolak dengan 403.
+
+Bila Nginx project utama berjalan **di dalam container**, bukan di host, `127.0.0.1:8081` tidak
+terjangkau. Ganti upstream jadi `host.docker.internal:8081` (tambahkan `extra_hosts:
+["host.docker.internal:host-gateway"]` di service Nginx), lalu set `APP_BIND=172.17.0.1`
+(IP bridge Docker) agar port tetap tidak terbuka ke publik.
+
+Bila memakai Caddy, lihat `deploy/Caddyfile` (arahkan ke `127.0.0.1:8081`).
 
 | Perintah | Fungsi |
 |---|---|
